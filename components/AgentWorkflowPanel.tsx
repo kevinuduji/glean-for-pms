@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 export default function AgentWorkflowPanel() {
-  const { activeScript, stepStatuses, isRunning, isComplete, elapsedTime } = useAgentStore();
+  const { activeScript, stepStatuses, isRunning, isLiveMode, isComplete, elapsedTime } = useAgentStore();
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [showFullTrace, setShowFullTrace] = useState(false);
 
@@ -38,7 +38,13 @@ export default function AgentWorkflowPanel() {
       <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-slate-800">Agent Trace</h3>
-          {isRunning && (
+          {isLiveMode && (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+              Live AI
+            </span>
+          )}
+          {isRunning && !isLiveMode && (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
               Running...

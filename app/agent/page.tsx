@@ -5,14 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Sparkles, RotateCcw } from 'lucide-react';
 import { useAgentStore } from '@/lib/store';
-import { agentScripts } from '@/lib/mock-data/agent-scripts';
 import QuickQueryPills from '@/components/QuickQueryPills';
 import AgentWorkflowPanel from '@/components/AgentWorkflowPanel';
 import { cn } from '@/lib/utils';
 
 function AgentPageInner() {
   const searchParams = useSearchParams();
-  const { runScript, resetAgent, conversation, isRunning } = useAgentStore();
+  const { runScript, runLive, resetAgent, conversation, isRunning } = useAgentStore();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +27,17 @@ function AgentPageInner() {
     }
   }, [searchParams, runScript]);
 
+  // Dashboard query handoff: when a query was set on the dashboard and we land here fresh
+  useEffect(() => {
+    const storeQuery = useAgentStore.getState().query;
+    if (storeQuery && conversation.length === 0 && !hasAutoRun.current && !searchParams.get('script')) {
+      hasAutoRun.current = true;
+      setTimeout(() => {
+        runLive(storeQuery);
+      }, 200);
+    }
+  }, []);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation]);
@@ -36,16 +46,8 @@ function AgentPageInner() {
     e?.preventDefault();
     const text = inputValue.trim();
     if (!text || isRunning) return;
-
-    const matchedScript = agentScripts.find(s =>
-      s.query.toLowerCase() === text.toLowerCase() ||
-      s.query.toLowerCase().includes(text.toLowerCase()) ||
-      text.toLowerCase().includes(s.query.toLowerCase().slice(0, 20))
-    );
-
-    const scriptId = matchedScript?.id || 'script-7';
     setInputValue('');
-    runScript(scriptId, text);
+    runLive(text);
   };
 
   const handlePillClick = (scriptId: string, queryText: string) => {
