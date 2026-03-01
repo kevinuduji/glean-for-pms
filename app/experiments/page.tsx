@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import { experiments, Experiment } from '@/lib/mock-data/experiments';
-import { FlaskConical, Plus, CheckCircle2, Clock, AlertCircle, FileText, X } from 'lucide-react';
+import { FlaskConical, Plus, CheckCircle2, Clock, AlertCircle, FileText, X, Loader2, Sparkles, Play, Square, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -14,10 +14,26 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
   draft: { label: 'Draft', color: 'bg-amber-100 text-amber-700', icon: FileText },
 };
 
-function ExperimentDetail({ experiment }: { experiment: Experiment }) {
+function ExperimentDetail({
+  experiment,
+  onUpdate,
+}: {
+  experiment: Experiment;
+  onUpdate: (id: string, update: Partial<Experiment>) => void;
+}) {
+  const [agentAnalysis, setAgentAnalysis] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [shipped, setShipped] = useState(false);
+
+  // Reset analysis when switching experiments
+  useEffect(() => {
+    setAgentAnalysis('');
+    setIsAnalyzing(false);
+    setShipped(false);
+  }, [experiment.id]);
+
   const controlValue = 59;
   const variantValue = experiment.currentLift ? controlValue * (1 + experiment.currentLift / 100) : controlValue;
-
   const chartData = [
     { name: 'Control', value: controlValue, fill: '#94a3b8' },
     { name: 'Variant', value: Math.round(variantValue), fill: '#6366f1' },
@@ -26,9 +42,45 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
   const status = statusConfig[experiment.status];
   const StatusIcon = status.icon;
 
+  const agentQueries: Record<string, string> = {
+    draft: `I'm about to launch this A/B experiment: "${experiment.name}". Hypothesis: ${experiment.hypothesis}. Control: ${experiment.control}. Variant: ${experiment.variant}. Primary metric: ${experiment.primaryMetric}, target lift: +${experiment.targetLift}%. What risks should I watch for and how long should I run it?`,
+    running: `This A/B test is live: "${experiment.name}". Current lift: +${experiment.currentLift ?? 0}% on ${experiment.primaryMetric} at ${experiment.confidence ?? 0}% confidence. Sample: ${(experiment.sampleSize.control + experiment.sampleSize.variant).toLocaleString()} users. Target: +${experiment.targetLift}% at 95% confidence. Should I keep running, stop early, or ship?`,
+    significant: `This experiment reached significance: "${experiment.name}". Variant beat control by +${experiment.currentLift}% on ${experiment.primaryMetric} at ${experiment.confidence}% confidence. ${(experiment.sampleSize.control + experiment.sampleSize.variant).toLocaleString()} total users. Should I ship? What should I monitor post-launch?`,
+    inconclusive: `This experiment was inconclusive: "${experiment.name}". Hypothesis: ${experiment.hypothesis}. What likely caused it to be inconclusive? Should I retry with a larger sample, adjust the hypothesis, or abandon it?`,
+  };
+
+  const handleAskAgent = async () => {
+    setIsAnalyzing(true);
+    setAgentAnalysis('');
+    try {
+      const res = await fetch('/api/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: agentQueries[experiment.status] }),
+      });
+      const data = await res.json();
+      setAgentAnalysis(data.response ?? 'No response generated.');
+    } catch {
+      setAgentAnalysis('Failed to load analysis. Check your API key.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleLaunch = () => {
+    onUpdate(experiment.id, {
+      status: 'running',
+      startDate: new Date().toISOString().slice(0, 10),
+      sampleSize: { control: 124, variant: 131 },
+      confidence: 12,
+      currentLift: 2.1,
+    });
+  };
+
   return (
-    <div className="flex-1 p-6 overflow-y-auto">
-      <div className="mb-6">
+    <div className="h-full p-6 overflow-y-auto">
+      {/* Header */}
+      <div className="mb-5">
         <div className="flex items-start gap-3 mb-3">
           <span className={cn('flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full', status.color)}>
             <StatusIcon className="w-3.5 h-3.5" />
@@ -41,6 +93,53 @@ function ExperimentDetail({ experiment }: { experiment: Experiment }) {
           Started {experiment.startDate}
           {experiment.endDate && ` · Ended ${experiment.endDate}`}
         </p>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        {experiment.status === 'draft' && (
+          <button
+            onClick={handleLaunch}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Play className="w-3.5 h-3.5" />
+            Launch Experiment
+          </button>
+        )}
+        {experiment.status === 'running' && (
+          <button
+            onClick={() => onUpdate(experiment.id, { status: 'inconclusive' })}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <Square className="w-3.5 h-3.5" />
+            Stop Test
+          </button>
+        )}
+        {experiment.status === 'significant' && !shipped && (
+          <button
+            onClick={() => setShipped(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Rocket className="w-3.5 h-3.5" />
+            Roll Out to 100%
+          </button>
+        )}
+        {shipped && (
+          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold rounded-lg">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Shipped — monitoring active
+          </span>
+        )}
+        <button
+          onClick={handleAskAgent}
+          disabled={isAnalyzing}
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-indigo-200 bg-indigo-50 text-indigo-600 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
+        >
+          {isAnalyzing
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : <Sparkles className="w-3.5 h-3.5" />}
+          {isAnalyzing ? 'Analyzing...' : 'Ask Agent'}
+        </button>
       </div>
 
       {/* Hypothesis */}
@@ -175,7 +274,7 @@ created_by: "${experiment.createdBy}"`}
 
       {/* Significant experiment readout */}
       {experiment.status === 'significant' && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
           <p className="text-xs font-semibold text-green-700 mb-2">AI Readout — Ready to Ship</p>
           <p className="text-sm text-slate-700 leading-relaxed">
             The SMS alternative verification variant beat the control by <strong>+{experiment.currentLift}%</strong> on {experiment.primaryMetric} at <strong>{experiment.confidence}% confidence</strong> — well above the 95% threshold.
@@ -184,17 +283,115 @@ created_by: "${experiment.createdBy}"`}
           </p>
         </div>
       )}
+
+      {/* Agent analysis panel */}
+      <AnimatePresence>
+        {(isAnalyzing || agentAnalysis) && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="border border-indigo-100 bg-indigo-50 rounded-xl p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              {isAnalyzing
+                ? <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+                : <Sparkles className="w-3.5 h-3.5 text-indigo-500" />}
+              <p className="text-xs font-semibold text-indigo-700">
+                {isAnalyzing ? 'Agent is analyzing...' : 'Agent Analysis'}
+              </p>
+            </div>
+            {isAnalyzing ? (
+              <div className="flex items-center gap-1.5 mt-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            ) : (
+              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{agentAnalysis}</p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function NewExperimentModal({ onClose }: { onClose: () => void }) {
-  const [input, setInput] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+const LOADING_STEPS = [
+  { label: 'Querying Amplitude — pulling funnel drop-off data', delay: 0 },
+  { label: 'Checking historical experiments for prior lift signals', delay: 900 },
+  { label: 'Reading GitHub — current implementation context', delay: 1700 },
+  { label: 'Scaffolding experiment brief from connected data...', delay: 2500 },
+];
 
-  const handleSubmit = (e: React.FormEvent) => {
+function parseExperimentFromYaml(yaml: string, userInput: string): Experiment {
+  const getField = (key: string): string => {
+    const m = yaml.match(new RegExp(`^${key}:\\s*["']?([^\\n"']+)["']?`, 'mi'));
+    return m?.[1]?.trim() ?? '';
+  };
+  const getMultiline = (key: string): string => {
+    const m = yaml.match(new RegExp(`^${key}:\\s*>\\s*\\n([\\s\\S]*?)(?=\\n[a-z_]+:|$)`, 'mi'));
+    if (m) return m[1].replace(/\n\s+/g, ' ').trim();
+    return getField(key);
+  };
+  const getLift = (key: string): number => {
+    const raw = getField(key);
+    const num = parseFloat(raw.replace(/[^0-9.-]/g, ''));
+    return isNaN(num) ? 10 : num;
+  };
+  return {
+    id: `exp-${Date.now().toString().slice(-6)}`,
+    name: getField('name') || userInput.slice(0, 60),
+    status: 'draft',
+    hypothesis: getMultiline('hypothesis') || userInput,
+    control: getField('control') || 'Current implementation',
+    variant: getField('variant') || 'Proposed change',
+    primaryMetric: getField('primary_metric') || 'conversion_rate',
+    targetLift: getLift('target_lift'),
+    startDate: new Date().toISOString().slice(0, 10),
+    sampleSize: { control: 0, variant: 0 },
+    createdBy: 'Kevin (Agent-assisted)',
+  };
+}
+
+function NewExperimentModal({ onClose, onSave }: { onClose: () => void; onSave: (exp: Experiment) => void }) {
+  const [input, setInput] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [agentResponse, setAgentResponse] = useState('');
+  const [visibleSteps, setVisibleSteps] = useState(0);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim()) setSubmitted(true);
+    if (!input.trim()) return;
+
+    setStatus('loading');
+    setVisibleSteps(0);
+
+    // Animate loading steps while API call runs in parallel
+    LOADING_STEPS.forEach((step, i) => {
+      setTimeout(() => setVisibleSteps(i + 1), step.delay);
+    });
+
+    const query = `Scaffold an experiment brief in YAML format for the following idea: "${input.trim()}".
+
+Use the connected product data to inform the hypothesis, baseline metrics, and expected lift. Output ONLY valid YAML with these exact fields:
+experiment_id, name, status (set to "draft"), hypothesis, control, variant, primary_metric, target_lift, secondary_metrics (list), guardrail (list), sample_size_required, duration_estimate, confidence_target, context (with prior_test, current_data, recommendation).
+
+Be specific — reference real numbers from the connected data where relevant.`;
+
+    try {
+      const res = await fetch('/api/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      if (!res.ok) throw new Error(`API ${res.status}`);
+      const data = await res.json();
+      setAgentResponse(data.response ?? '');
+      setStatus('done');
+    } catch {
+      setStatus('error');
+    }
   };
 
   return (
@@ -212,7 +409,7 @@ function NewExperimentModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-6">
-          {!submitted ? (
+          {status === 'idle' && (
             <form onSubmit={handleSubmit}>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Describe what you want to test
@@ -241,52 +438,79 @@ function NewExperimentModal({ onClose }: { onClose: () => void }) {
                 </button>
               </div>
             </form>
-          ) : (
+          )}
+
+          {status === 'loading' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-2">
+              <div className="flex items-center gap-2 mb-5">
+                <Sparkles className="w-4 h-4 text-indigo-500" />
+                <p className="text-sm font-medium text-slate-700">Agent is scaffolding your experiment...</p>
+              </div>
+              <div className="space-y-2.5">
+                {LOADING_STEPS.map((step, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: i < visibleSteps ? 1 : 0.25, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex items-center gap-2.5"
+                  >
+                    {i < visibleSteps - 1 ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                    ) : i === visibleSteps - 1 ? (
+                      <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin flex-shrink-0" />
+                    ) : (
+                      <div className="w-3.5 h-3.5 rounded-full border border-slate-200 flex-shrink-0" />
+                    )}
+                    <span className={cn(
+                      'text-xs font-mono',
+                      i < visibleSteps ? 'text-slate-600' : 'text-slate-300'
+                    )}>
+                      {step.label}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {status === 'done' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-600" />
                 <p className="text-sm text-green-700 font-medium">Experiment scaffolded by Agent</p>
               </div>
-              <div className="bg-slate-950 rounded-xl p-4">
+              <div className="bg-slate-950 rounded-xl p-4 max-h-72 overflow-y-auto">
                 <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap leading-relaxed">
-{`// Agent analyzed your request and pulled context from Amplitude
-// Highest drop-off step: Onboarding Step 3 (41% drop)
-// Historical experiment: Feb test reduced fields 9→7, lifted +12%
-
-experiment_id: exp-new-${Date.now().toString().slice(-4)}
-name: "Onboarding Step 3 — Reduced Fields v2"
-status: draft
-
-hypothesis: >
-  Reducing mandatory profile fields from 7 to 3 (name, role, company)
-  and deferring the rest to an in-app prompt will increase step 3
-  completion from 59% by at least +15%.
-
-primary_metric: onboarding_step3_completed
-target_lift: +15%
-secondary_metrics:
-  - profile_completed_later_rate
-  - d7_retention
-  - time_to_first_action
-guardrail:
-  - overall_signup_to_active_rate (must not drop)
-
-sample_size_required: ~3,200 per variant
-duration_estimate: 14 days
-confidence_target: 95%
-
-context:
-  prior_test: "Feb 2023 — reduced 9→7 fields, +12% lift"
-  current_drop: "41% at step 3 — highest in funnel"
-  recommendation: "Go further than Feb. 3 fields max."`}
+                  {agentResponse}
                 </pre>
               </div>
               <div className="flex justify-end gap-3 mt-4">
                 <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">
                   Close
                 </button>
-                <button className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                <button
+                  onClick={() => { onSave(parseExperimentFromYaml(agentResponse, input)); onClose(); }}
+                  className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                >
                   Save to Experiments
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {status === 'error' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-4">
+              <p className="text-sm text-red-600 mb-4">Something went wrong. Check that your API key is configured.</p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setStatus('idle')}
+                  className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg transition-colors"
+                >
+                  Try Again
+                </button>
+                <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">
+                  Close
                 </button>
               </div>
             </motion.div>
@@ -298,8 +522,19 @@ context:
 }
 
 export default function ExperimentsPage() {
+  const [experimentList, setExperimentList] = useState([...experiments]);
   const [selected, setSelected] = useState(experiments[0]);
   const [showModal, setShowModal] = useState(false);
+
+  const handleSave = (exp: Experiment) => {
+    setExperimentList(prev => [exp, ...prev]);
+    setSelected(exp);
+  };
+
+  const handleUpdate = (id: string, update: Partial<Experiment>) => {
+    setExperimentList(prev => prev.map(e => e.id === id ? { ...e, ...update } : e));
+    setSelected(prev => prev.id === id ? { ...prev, ...update } : prev);
+  };
 
   return (
     <>
@@ -318,7 +553,7 @@ export default function ExperimentsPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto py-2">
-            {experiments.map((exp) => {
+            {experimentList.map((exp) => {
               const statusCfg = statusConfig[exp.status];
               const StatusIcon = statusCfg.icon;
               const isSelected = selected.id === exp.id;
@@ -358,14 +593,14 @@ export default function ExperimentsPage() {
               exit={{ opacity: 0, x: -8 }}
               className="h-full"
             >
-              <ExperimentDetail experiment={selected} />
+              <ExperimentDetail experiment={selected} onUpdate={handleUpdate} />
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
 
       <AnimatePresence>
-        {showModal && <NewExperimentModal onClose={() => setShowModal(false)} />}
+        {showModal && <NewExperimentModal onClose={() => setShowModal(false)} onSave={handleSave} />}
       </AnimatePresence>
     </>
   );

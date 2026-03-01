@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -12,8 +13,9 @@ import {
 } from '@/lib/mock-data/amplitude';
 import { validationErrorTimeSeries } from '@/lib/mock-data/sentry';
 import { paymentsLatency } from '@/lib/mock-data/prometheus';
-import { TrendingDown, TrendingUp, ExternalLink, AlertTriangle, ChevronDown } from 'lucide-react';
+import { TrendingDown, TrendingUp, AlertTriangle, ChevronDown, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAgentStore } from '@/lib/store';
 
 type MetricCard = {
   id: string;
@@ -31,6 +33,8 @@ type MetricCard = {
   chartKey: string;
   chartColor: string;
   annotation?: string;
+  agentQuery: string;
+  agentScriptId?: string;
 };
 
 const latencyChartData = paymentsLatency.slice(40).map(p => ({
@@ -53,6 +57,8 @@ const metricCards: MetricCard[] = [
     chartKey: 'value',
     chartColor: '#6366f1',
     annotation: 'DAU is up 3.2% week-over-week, consistent with the Sept growth trend. No anomalies detected.',
+    agentQuery: 'What should I build next?',
+    agentScriptId: 'script-7',
   },
   {
     id: 'signup-funnel',
@@ -70,6 +76,8 @@ const metricCards: MetricCard[] = [
     chartKey: 'count',
     chartColor: '#ef4444',
     annotation: 'Step 2 (email verification) shows a 34% drop in Nov vs 8% in Oct. Root cause: commit a3f92c broke + alias email support.',
+    agentQuery: 'Why are signups down 15% this month?',
+    agentScriptId: 'script-1',
   },
   {
     id: 'checkout',
@@ -87,6 +95,8 @@ const metricCards: MetricCard[] = [
     chartKey: 'value',
     chartColor: '#ef4444',
     annotation: 'Checkout dropped from 78% to 61% at 14:23 UTC on Dec 1 — correlates exactly with payments-service v2.4.1 deploy.',
+    agentQuery: 'Is checkout broken — product or infra?',
+    agentScriptId: 'script-5',
   },
   {
     id: 'payment-latency',
@@ -104,6 +114,8 @@ const metricCards: MetricCard[] = [
     chartKey: 'p95',
     chartColor: '#f97316',
     annotation: 'P95 latency spiked from 340ms to 8,100ms on Dec 1. Only payments-service is affected — all other services nominal. Rollback recommended.',
+    agentQuery: 'Is checkout broken — product or infra?',
+    agentScriptId: 'script-5',
   },
   {
     id: 'active-experiments',
@@ -119,6 +131,8 @@ const metricCards: MetricCard[] = [
     chartKey: '',
     chartColor: '',
     annotation: 'Homepage CTA sticky test (72% confidence) and Billing comparison table test (44% confidence) are both running.',
+    agentQuery: 'Set up an A/B test for our onboarding flow',
+    agentScriptId: 'script-3',
   },
   {
     id: 'validation-errors',
@@ -136,6 +150,8 @@ const metricCards: MetricCard[] = [
     chartKey: 'count',
     chartColor: '#ef4444',
     annotation: 'ValidationErrors spiked from near-zero to 85-115/day on Nov 4 after commit a3f92c modified email validation regex.',
+    agentQuery: 'Why are signups down 15% this month?',
+    agentScriptId: 'script-1',
   },
   {
     id: 'homepage-conversion',
@@ -151,6 +167,8 @@ const metricCards: MetricCard[] = [
     chartKey: 'value',
     chartColor: '#f59e0b',
     annotation: 'Conversion dipped slightly after the Oct 14 homepage v2 launch. Insufficient tracking events to confirm causality — pricing section has 0 events.',
+    agentQuery: 'Did our new homepage help?',
+    agentScriptId: 'script-2',
   },
   {
     id: 'feature-adoption',
@@ -169,6 +187,8 @@ const metricCards: MetricCard[] = [
     chartKey: 'value',
     chartColor: '#22c55e',
     annotation: 'Advanced Filters exceeded the 25% MAU adoption target (31%). Users who engage with filters show 67% D30 retention vs 43% for non-users — a 24-point lift.',
+    agentQuery: 'Was Feature X worth shipping?',
+    agentScriptId: 'script-4',
   },
 ];
 
@@ -177,6 +197,19 @@ const filters = ['All', 'Critical', 'Amplitude', 'Sentry', 'Prometheus'];
 export default function InsightsPage() {
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const router = useRouter();
+  const { runScript, setQuery } = useAgentStore();
+
+  const handleAskAgent = (e: React.MouseEvent, card: MetricCard) => {
+    e.stopPropagation();
+    setQuery(card.agentQuery);
+    if (card.agentScriptId) {
+      router.push('/agent');
+      setTimeout(() => runScript(card.agentScriptId!, card.agentQuery), 150);
+    } else {
+      router.push('/agent');
+    }
+  };
 
   const filteredCards = metricCards.filter(card => {
     if (selectedFilter === 'All') return true;
@@ -314,11 +347,11 @@ export default function InsightsPage() {
                     {card.source}
                   </span>
                   <button
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-[10px] text-slate-400 hover:text-indigo-600 flex items-center gap-1 transition-colors"
+                    onClick={(e) => handleAskAgent(e, card)}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-colors"
                   >
-                    Open in {card.source}
-                    <ExternalLink className="w-2.5 h-2.5" />
+                    <Sparkles className="w-2.5 h-2.5" />
+                    Ask Agent
                   </button>
                 </div>
               </div>
