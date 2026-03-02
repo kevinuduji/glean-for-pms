@@ -194,6 +194,119 @@ Want me to scaffold an experiment for any of these, or generate a full prioritiz
 I've drafted an experiment brief and measurement plan. Want me to scaffold the full A/B test?`,
     relatedCardTypes: ['analogous-comparison', 'measurement-plan', 'event-checklist'],
   },
+  {
+    id: 'script-exp-analogs',
+    query: 'Find experiments analogous to this one',
+    steps: [
+      { id: 'sea-1', tool: 'agent', action: 'Parsing selected experiment — extracting funnel stage, metric type, and user segment', result: 'Scope identified: onboarding funnel, completion-rate metric, new user cohort', durationMs: 600 },
+      { id: 'sea-2', tool: 'amplitude', action: 'Searching experiment history — matching by metric family and funnel stage', result: '14 past experiments found in onboarding / activation cluster', durationMs: 820 },
+      { id: 'sea-3', tool: 'agent', action: 'Ranking analogous experiments by hypothesis similarity and result confidence', result: 'Top 3 analogous experiments selected', durationMs: 1100 },
+    ],
+    response: `**3 analogous experiments found from your archive:**
+
+**1. Onboarding Step 3 — Reduced Fields (exp-001)** · Same funnel stage
+Hypothesis: Reducing mandatory fields from 7→3 increases step 3 completion.
+Result: Draft (not yet run). Historical signal: a 9→7 field reduction in Feb 2023 produced **+12% completion lift**.
+
+**2. Email Verification — SMS Alternative (exp-003)** · Same user cohort (new signups)
+Hypothesis: SMS alternative reduces step 2 drop-off.
+Result: **+23.4% lift** at 97% confidence. Shipped.
+Takeaway: Reducing friction at any signup step compounds — this pattern holds across steps.
+
+**3. Profile Page — Social Proof Badges (exp-008)** · Adjacent funnel stage (activation)
+Hypothesis: Social proof badge increases profile completion.
+Result: **+19.7% lift** at 96% confidence. Shipped.
+Takeaway: Social proof elements work well for completion-rate metrics on this user base.
+
+These three experiments suggest the pattern is reliable: **reducing friction at onboarding steps consistently moves completion 12–24%.** Strong prior for running a new test here.`,
+    relatedCardTypes: ['prior-experiment', 'analogous-comparison'],
+  },
+  {
+    id: 'script-exp-trust',
+    query: 'Is this result trustworthy?',
+    steps: [
+      { id: 'set-1', tool: 'amplitude', action: 'Checking sample size — validating control vs variant exposure counts', result: 'Control: 4,211 users · Variant: 4,308 users — well-balanced', durationMs: 580 },
+      { id: 'set-2', tool: 'amplitude', action: 'Pulling guardrail metrics — checking for negative side effects', result: 'signup_to_active_rate: Control 61% vs Variant 63% — no degradation', durationMs: 740 },
+      { id: 'set-3', tool: 'amplitude', action: 'Running novelty effect check — week-1 vs week-2 lift comparison', result: 'Week 1: +26.1% lift. Week 2: +21.8% lift. Converging — not novelty.', durationMs: 890 },
+      { id: 'set-4', tool: 'agent', action: 'Assessing segment balance and statistical validity...', result: 'Validity assessment: Trustworthy', durationMs: 1200 },
+    ],
+    response: `**Verdict: Trustworthy — safe to ship.**
+
+Here's the breakdown:
+
+**Sample size:** Control 4,211 / Variant 4,308 — balanced within 2.3%, well within acceptable bounds. No contamination risk.
+
+**Guardrail metrics:** \`signup_to_active_rate\` is *higher* in the variant (63% vs 61%) — the feature helped without hurting any downstream metric.
+
+**Novelty effect:** Week-1 lift was +26%, which settled to +21.8% in week-2. This 4-point decay is within normal range and the result is still above your 95% significance threshold. This is not a novelty effect.
+
+**Statistical confidence:** 97% at 27 days of runtime. The result is stable and well above the 95% threshold.
+
+**Recommendation:** Ship to 100%. Monitor \`signup_step2_completed\` daily for the first 14 days post-launch to confirm holdover.`,
+    relatedCardTypes: ['validity-check', 'guardrail-metrics'],
+  },
+  {
+    id: 'script-exp-launch',
+    query: 'Write a launch brief for this experiment',
+    steps: [
+      { id: 'sel-1', tool: 'agent', action: 'Reading experiment result — extracting lift, confidence, and guardrail status', result: 'Lift: +23.4% · Confidence: 97% · Guardrails: clean', durationMs: 500 },
+      { id: 'sel-2', tool: 'github', action: 'Generating rollout plan — staged exposure schedule (10% → 50% → 100%)', result: 'Rollout plan drafted with 3 stages and monitoring triggers', durationMs: 920 },
+      { id: 'sel-3', tool: 'amplitude', action: 'Setting up monitoring dashboard — key metrics for post-launch tracking', result: 'Dashboard configured: primary metric + 3 guardrails + 1 leading indicator', durationMs: 780 },
+    ],
+    response: `**Launch Brief — Email Verification: SMS Alternative**
+
+**Decision:** Ship to 100%. Result: +23.4% lift at 97% confidence over 27 days.
+
+**Rollout plan:**
+- **Stage 1 (Day 1):** Ramp to 10%. Monitor for 48h. Rollback trigger: \`signup_step2_completed\` drops >5% vs baseline.
+- **Stage 2 (Day 3):** Ramp to 50% if Stage 1 is clean. Monitor for 72h.
+- **Stage 3 (Day 6):** Full 100% rollout. Remove feature flag after 14-day observation.
+
+**Metrics to monitor post-launch (daily for 14 days):**
+- Primary: \`signup_step2_completed\` (expect: stable or improving)
+- Guardrail 1: \`signup_to_active_rate\` (must stay ≥ 61%)
+- Guardrail 2: \`sms_verification_errors\` (must stay < 2%)
+- Leading indicator: \`verification_time_to_complete\` (expect: decrease for SMS users)
+
+**Owner:** @dan_reeves (experiment creator)
+**Eng rollout contact:** @infra-bot (feature flag: \`ff_sms_verification\`)
+
+**Rollback plan:** Toggle \`ff_sms_verification\` to false in LaunchDarkly. Recovery expected within 5 minutes.`,
+    relatedCardTypes: ['launch-brief', 'rollout-plan', 'monitoring-dashboard'],
+  },
+  {
+    id: 'script-exp-scaffold',
+    query: 'Scaffold a new experiment',
+    steps: [
+      { id: 'ses-1', tool: 'amplitude', action: 'Running funnel analysis — identifying highest drop-off point in target flow', result: 'Highest drop: onboarding step 3 at 41%. Second: billing page at 28%.', durationMs: 780 },
+      { id: 'ses-2', tool: 'amplitude', action: 'Searching experiment history — prior tests on same metric or funnel stage', result: 'Found 3 analogous experiments. Best signal: field reduction → +12% completion.', durationMs: 850 },
+      { id: 'ses-3', tool: 'agent', action: 'Generating hypothesis — combining funnel signal with prior experiment learnings', result: 'Hypothesis drafted: reduce fields + defer optional data', durationMs: 1100 },
+      { id: 'ses-4', tool: 'agent', action: 'Calculating sample size and duration — based on current traffic and target lift', result: '3,200/variant · 14 days at current traffic of ~460 new users/day', durationMs: 900 },
+    ],
+    response: `**Experiment scaffold generated:**
+
+**Name:** Onboarding Step 3 — Reduced Fields v2
+
+**Hypothesis:** Reducing mandatory profile fields from 7 to 3 (name, role, company) and deferring the rest to an in-app prompt will increase step 3 completion from 59% by at least +15%.
+
+- **Control:** Current 7-field form
+- **Variant:** 3-field form + "Complete later" CTA
+
+**Primary metric:** \`onboarding_step3_completed\` (+15% target lift)
+**Secondary metrics:** \`profile_completed_later_rate\`, \`d7_retention\`, \`time_to_first_action\`
+**Guardrail:** \`signup_to_active_rate\` must not decrease
+
+**Sample size:** ~3,200 per variant
+**Estimated duration:** 14 days at current traffic (~460 new users/day)
+
+**Analogous past experiments:**
+• Onboarding step 3 field reduction (Feb 2023): +12% lift ✓
+• SMS verification alternative (Oct 2023): +23% lift ✓
+• Profile social proof badge (Nov 2023): +20% lift ✓
+
+Strong prior across three similar tests. Confidence in 15% target lift: **high**.`,
+    relatedCardTypes: ['experiment-scaffold', 'prior-experiment', 'amplitude-funnel'],
+  },
 ];
 
 export const quickQueryPills = [

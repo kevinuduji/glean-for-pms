@@ -1,3 +1,14 @@
+export type ExperimentArea =
+  | 'onboarding'
+  | 'activation'
+  | 'conversion'
+  | 'retention'
+  | 'billing'
+  | 'homepage'
+  | 'notifications'
+  | 'search'
+  | 'pricing';
+
 export type Experiment = {
   id: string;
   name: string;
@@ -13,6 +24,9 @@ export type Experiment = {
   endDate?: string;
   sampleSize: { control: number; variant: number };
   createdBy: string;
+  area: ExperimentArea;
+  secondaryMetrics?: string[];
+  insight?: string;
 };
 
 export const experiments: Experiment[] = [
@@ -28,6 +42,8 @@ export const experiments: Experiment[] = [
     startDate: '2023-12-10',
     sampleSize: { control: 0, variant: 0 },
     createdBy: 'Kevin (Agent-assisted)',
+    area: 'onboarding',
+    secondaryMetrics: ['profile_completed_later_rate', 'd7_retention', 'time_to_first_action'],
   },
   {
     id: 'exp-002',
@@ -43,6 +59,8 @@ export const experiments: Experiment[] = [
     startDate: '2023-11-28',
     sampleSize: { control: 1842, variant: 1890 },
     createdBy: 'sarah_kim',
+    area: 'homepage',
+    secondaryMetrics: ['signup_completed', 'bounce_rate'],
   },
   {
     id: 'exp-003',
@@ -59,6 +77,9 @@ export const experiments: Experiment[] = [
     endDate: '2023-10-28',
     sampleSize: { control: 4211, variant: 4308 },
     createdBy: 'dan_reeves',
+    area: 'onboarding',
+    insight: 'SMS verification dramatically reduced friction for mobile users — biggest win in Q4.',
+    secondaryMetrics: ['d1_retention', 'time_to_verify'],
   },
   {
     id: 'exp-004',
@@ -74,5 +95,77 @@ export const experiments: Experiment[] = [
     startDate: '2023-11-15',
     sampleSize: { control: 892, variant: 904 },
     createdBy: 'tom_wu',
+    area: 'billing',
+    secondaryMetrics: ['plan_page_time_spent', 'faq_expansion_rate'],
+  },
+  {
+    id: 'exp-005',
+    name: 'Notifications — Digest vs Real-time',
+    status: 'draft',
+    hypothesis: 'Batching notifications into a daily digest will increase open rate and reduce opt-out rate',
+    control: 'Real-time push notifications (current)',
+    variant: 'Daily digest email at 9 AM local time',
+    primaryMetric: 'notification_open_rate',
+    targetLift: 25,
+    startDate: '2024-01-08',
+    sampleSize: { control: 0, variant: 0 },
+    createdBy: 'Kevin (Agent-assisted)',
+    area: 'notifications',
+    secondaryMetrics: ['notification_opt_out_rate', 'dau_next_day'],
+  },
+  {
+    id: 'exp-006',
+    name: 'Search — Autocomplete Suggestions',
+    status: 'inconclusive',
+    hypothesis: 'Showing autocomplete suggestions while typing will increase search result click-through',
+    control: 'Search input with no autocomplete',
+    variant: 'Autocomplete dropdown with top 5 suggestions',
+    primaryMetric: 'search_result_clicked',
+    targetLift: 15,
+    currentLift: 2.1,
+    confidence: 68,
+    startDate: '2023-09-05',
+    endDate: '2023-09-30',
+    sampleSize: { control: 2890, variant: 2940 },
+    createdBy: 'priya_nair',
+    area: 'search',
+    insight: 'Lift was too small and noisy to ship. Likely a UX polish win, not a growth lever. Revisit only if search becomes a core retention driver.',
+    secondaryMetrics: ['search_abandonment_rate', 'time_to_first_result_click'],
+  },
+  {
+    id: 'exp-007',
+    name: 'Pricing Page — Annual Toggle Highlight',
+    status: 'running',
+    hypothesis: 'Visually highlighting the annual plan savings badge will increase annual plan selection',
+    control: 'Monthly/annual toggle with no visual emphasis',
+    variant: 'Toggle with animated "Save 25%" badge on annual',
+    primaryMetric: 'annual_plan_selected',
+    targetLift: 20,
+    currentLift: 14.2,
+    confidence: 81,
+    startDate: '2023-12-01',
+    sampleSize: { control: 1204, variant: 1198 },
+    createdBy: 'sarah_kim',
+    area: 'pricing',
+    secondaryMetrics: ['checkout_started', 'plan_page_bounce_rate'],
+  },
+  {
+    id: 'exp-008',
+    name: 'Profile Page — Social Proof Badges',
+    status: 'significant',
+    hypothesis: 'Showing verified-user badges on profile completion prompts will increase profile completion rate',
+    control: 'Plain profile completion prompt',
+    variant: 'Prompt with "Join 12,000+ verified users" social proof badge',
+    primaryMetric: 'profile_completed',
+    targetLift: 15,
+    currentLift: 19.7,
+    confidence: 96,
+    startDate: '2023-11-01',
+    endDate: '2023-11-22',
+    sampleSize: { control: 3102, variant: 3089 },
+    createdBy: 'dan_reeves',
+    area: 'activation',
+    insight: 'Social proof meaningfully moved profile completions. Follow-on: test dynamic badge counts vs. static.',
+    secondaryMetrics: ['d7_retention', 'first_connection_made'],
   },
 ];

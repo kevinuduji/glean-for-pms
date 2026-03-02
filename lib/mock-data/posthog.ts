@@ -8,6 +8,11 @@ export type Session = {
   issueType: 'rage-click' | 'dead-click' | 'drop-off' | 'repeated-navigation' | null;
   converted: boolean;
   agentAnnotation: string | null;
+  status: 'untriaged' | 'in-review' | 'triaged';
+  impactScore: number;
+  priority: 'P1' | 'P2' | 'P3' | null;
+  linkedTicketId: string | null;
+  suggestedPrompts: string[];
 };
 
 export const flaggedSessions: Session[] = [
@@ -21,6 +26,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'rage-click',
     converted: false,
     agentAnnotation: 'Likely: payment timeout from payments-service v2.4.1 regression',
+    status: 'untriaged',
+    impactScore: 47,
+    priority: null,
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How many users hit this payment timeout this week?',
+      'Which version of payments-service introduced this regression?',
+      'Is there a rollback or hotfix path available?',
+    ],
   },
   {
     id: 'B1043',
@@ -32,6 +46,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'repeated-navigation',
     converted: false,
     agentAnnotation: 'Likely: plan confusion — pricing page does not clearly map to use case',
+    status: 'untriaged',
+    impactScore: 23,
+    priority: null,
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How many signups are bouncing to the pricing page during onboarding?',
+      'What is the conversion rate from /pricing to /signup this month?',
+      'Which plan tier is most confusing for new users?',
+    ],
   },
   {
     id: 'C7720',
@@ -43,6 +66,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'drop-off',
     converted: false,
     agentAnnotation: 'Likely: no onboarding resume state — user lost progress',
+    status: 'in-review',
+    impactScore: 61,
+    priority: 'P2',
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How many users abandon onboarding mid-flow and never return?',
+      'At which step do users drop off most frequently?',
+      'What is the impact on activation rate if we add resume state?',
+    ],
   },
   {
     id: 'D3391',
@@ -54,6 +86,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'dead-click',
     converted: false,
     agentAnnotation: 'Dead-click on disabled Export CSV button — PR #198 is the fix',
+    status: 'triaged',
+    impactScore: 18,
+    priority: 'P1',
+    linkedTicketId: 'JIRA-1041',
+    suggestedPrompts: [
+      'How many users are hitting the Export CSV dead-click?',
+      'What is the status of PR #198?',
+      'Is there a workaround I can communicate to affected users?',
+    ],
   },
   {
     id: 'E5512',
@@ -65,6 +106,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'drop-off',
     converted: false,
     agentAnnotation: 'Payment timeout — no user-facing error shown, silent failure',
+    status: 'untriaged',
+    impactScore: 39,
+    priority: null,
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How often does checkout time out with no visible error?',
+      'What is the p95 latency on the payments-service endpoint?',
+      'How much revenue are we losing to silent checkout failures?',
+    ],
   },
   {
     id: 'F8827',
@@ -76,6 +126,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'repeated-navigation',
     converted: false,
     agentAnnotation: 'Billing page UX issue — plan upgrade flow unclear',
+    status: 'untriaged',
+    impactScore: 31,
+    priority: null,
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'What percentage of upgrade attempts on the billing page fail to complete?',
+      'What is the user drop-off rate between /pricing and /settings/billing?',
+      'Which plan upgrade path has the most friction?',
+    ],
   },
   {
     id: 'G2241',
@@ -87,6 +146,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'rage-click',
     converted: false,
     agentAnnotation: 'Checkout payment timeout — payments-service regression',
+    status: 'untriaged',
+    impactScore: 47,
+    priority: null,
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How many active users are impacted by the checkout timeout regression?',
+      'When did the payments-service regression first appear in logs?',
+      'What is the recommended rollback commit for payments-service v2.4.1?',
+    ],
   },
   {
     id: 'H9934',
@@ -98,6 +166,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'drop-off',
     converted: false,
     agentAnnotation: 'No onboarding state saved — user had to restart from beginning',
+    status: 'in-review',
+    impactScore: 55,
+    priority: 'P2',
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How many users restart onboarding from step 1 after returning?',
+      'What is the average onboarding completion time with vs without interruptions?',
+      'Has anyone implemented a resume onboarding feature before — any prior art?',
+    ],
   },
   {
     id: 'I4401',
@@ -109,6 +186,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'dead-click',
     converted: false,
     agentAnnotation: 'Same Export CSV dead-click issue as D3391 and others',
+    status: 'triaged',
+    impactScore: 18,
+    priority: 'P1',
+    linkedTicketId: 'JIRA-1041',
+    suggestedPrompts: [
+      'Is this the same Export CSV issue as session D3391?',
+      'How many users in total have hit this dead-click?',
+      'What is the ETA for the JIRA-1041 fix to ship?',
+    ],
   },
   {
     id: 'J6612',
@@ -120,6 +206,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'drop-off',
     converted: false,
     agentAnnotation: 'Payment timeout — spinner with no timeout UI, user gave up',
+    status: 'untriaged',
+    impactScore: 42,
+    priority: null,
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How many users see the checkout spinner for more than 10 seconds?',
+      'What is the average spinner duration before users abandon?',
+      'What timeout threshold should we set for the payment UI?',
+    ],
   },
   {
     id: 'K3318',
@@ -131,6 +226,15 @@ export const flaggedSessions: Session[] = [
     issueType: 'rage-click',
     converted: false,
     agentAnnotation: 'ValidationError from + alias in email — commit a3f92c regression',
+    status: 'untriaged',
+    impactScore: 29,
+    priority: null,
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How many signups are failing due to the email + alias validation bug?',
+      'When was commit a3f92c introduced and what else did it change?',
+      'What is the fix for the + alias email validation regression?',
+    ],
   },
   {
     id: 'L8820',
@@ -142,5 +246,14 @@ export const flaggedSessions: Session[] = [
     issueType: 'repeated-navigation',
     converted: true,
     agentAnnotation: 'Converted eventually — pricing page confusion delayed signup by ~15min',
+    status: 'in-review',
+    impactScore: 23,
+    priority: 'P3',
+    linkedTicketId: null,
+    suggestedPrompts: [
+      'How much does pricing page confusion increase average time-to-signup?',
+      'What specific plan tier information are users most likely missing?',
+      'What A/B tests have been run on the pricing page in the past 6 months?',
+    ],
   },
 ];
