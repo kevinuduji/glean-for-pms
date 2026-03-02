@@ -1,0 +1,21 @@
+**The core idea:** Product managers are drowning in disconnected tools. They use Jira to track tasks, Amplitude to watch metrics, GitHub to see code changes, and Slack to discuss decisions — but none of these talk to each other. When something breaks or a metric drops, PMs have to manually stitch together context from all these places. Glean for PMs does that automatically.
+
+**The simplest way to describe it:** Cursor made coding faster by eliminating the slow, manual parts so engineers could focus on judgment. Glean for PMs does the same thing for product decisions.
+
+---
+
+**What it connects**
+
+It pulls in data from across the entire product stack — not just clicks and page views like most analytics tools. It ingests user behavior (Amplitude, PostHog, Mixpanel), code changes (GitHub), error tracking (Sentry), infrastructure health (Prometheus), and team decisions (Slack/Jira). This full-stack view matters because a metric drop could be a UX problem or a server problem — and without seeing both layers, you're always guessing.
+
+**What it actually does with that data**
+
+Rather than just displaying dashboards, it reasons over everything and tells you what to do. It can diagnose why a metric dropped and trace it to a specific cause, surface the most relevant user sessions to watch, scaffold A/B tests end-to-end, audit what's being tracked and suggest what's missing, and produce retrospectives on shipped features so teams get better over time.
+
+**Who it's for**
+
+Primarily PMs, but also developers without a PM who need help prioritizing, and technical PMs or infra engineers who sit at the intersection of product and engineering.
+
+**The business angle**
+
+The long-term moat is owning the data layer — while it integrates with existing tools for a fast start, the goal is to manage event ingestion and storage directly, making it as sticky as any core data infrastructure.
