@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { quickQueryPills } from "@/lib/mock-data/agent-scripts";
 import { useAgentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import ToolLogo, { Tool } from "./ToolLogo";
 
 type QuickQueryPillsProps = {
   layout?: "scroll" | "wrap";
@@ -46,7 +47,7 @@ export default function QuickQueryPills({
             onClick={() => handleClick(pill)}
             className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm hover:border-indigo-300 hover:shadow-sm transition-all whitespace-nowrap font-medium"
           >
-            <span className="text-lg">{pill.emoji}</span>
+            <ToolLogo tool={pill.tool as Tool} size="sm" />
             <span>{pill.label}</span>
           </motion.button>
         ))}

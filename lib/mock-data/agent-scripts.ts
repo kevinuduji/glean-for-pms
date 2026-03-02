@@ -197,12 +197,12 @@ I've drafted an experiment brief and measurement plan. Want me to scaffold the f
 ];
 
 export const quickQueryPills = [
-  { id: 'pill-1', emoji: '⚡', label: 'Signup drop', scriptId: 'script-1' },
-  { id: 'pill-2', emoji: '🏠', label: 'Homepage impact', scriptId: 'script-2' },
-  { id: 'pill-3', emoji: '🧪', label: 'Onboarding test', scriptId: 'script-3' },
-  { id: 'pill-4', emoji: '📦', label: 'Feature X impact', scriptId: 'script-4' },
-  { id: 'pill-5', emoji: '🔥', label: 'Checkout issues', scriptId: 'script-5' },
-  { id: 'pill-6', emoji: '🎥', label: 'Troubled sessions', scriptId: 'script-6' },
-  { id: 'pill-7', emoji: '🧭', label: 'Roadmap ideas', scriptId: 'script-7' },
-  { id: 'pill-8', emoji: '📐', label: 'Metric modeling', scriptId: 'script-8' },
+  { id: 'pill-1', tool: 'amplitude', label: 'Signup drop', scriptId: 'script-1' },
+  { id: 'pill-2', tool: 'posthog', label: 'Homepage impact', scriptId: 'script-2' },
+  { id: 'pill-3', tool: 'amplitude', label: 'Onboarding test', scriptId: 'script-3' },
+  { id: 'pill-4', tool: 'github', label: 'Feature X impact', scriptId: 'script-4' },
+  { id: 'pill-5', tool: 'sentry', label: 'Checkout issues', scriptId: 'script-5' },
+  { id: 'pill-6', tool: 'posthog', label: 'Troubled sessions', scriptId: 'script-6' },
+  { id: 'pill-7', tool: 'agent', label: 'Roadmap ideas', scriptId: 'script-7' },
+  { id: 'pill-8', tool: 'amplitude', label: 'Metric modeling', scriptId: 'script-8' },
 ];
