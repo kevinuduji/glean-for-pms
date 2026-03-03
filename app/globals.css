@@ -7,6 +7,16 @@
   --foreground: #0f172a;
 }
 
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  zoom: 110%;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
