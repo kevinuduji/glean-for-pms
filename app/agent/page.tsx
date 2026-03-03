@@ -3,7 +3,15 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, RotateCcw } from "lucide-react";
+import {
+  Send,
+  Sparkles,
+  RotateCcw,
+  Globe,
+  Shield,
+  Zap,
+  Search,
+} from "lucide-react";
 import { useAgentStore } from "@/lib/store";
 import QuickQueryPills from "@/components/QuickQueryPills";
 import AgentWorkflowPanel from "@/components/AgentWorkflowPanel";
@@ -16,6 +24,8 @@ function AgentPageInner() {
   const { runScript, runLive, resetAgent, conversation, isRunning } =
     useAgentStore();
   const [inputValue, setInputValue] = useState("");
+  const [webEnabled, setWebEnabled] = useState(true);
+  const [searchMode, setSearchMode] = useState<"fast" | "deep">("fast");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasAutoRun = useRef(false);
@@ -261,41 +271,104 @@ function AgentPageInner() {
 
         {/* Input */}
         <div className="px-8 py-8">
-          <div className="max-w-3xl mx-auto relative group">
-            <form
-              onSubmit={handleSubmit}
-              className="relative z-10 transition-all duration-300 transform group-focus-within:translate-y-[-2px]"
-            >
-              <div className="absolute inset-0 bg-indigo-500/10 blur-2xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
-              <div className="relative bg-white border border-slate-200 rounded-3xl shadow-lg shadow-slate-200/50 group-focus-within:shadow-indigo-500/10 group-focus-within:border-indigo-500 transition-all overflow-hidden flex items-center">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Ask a question about your connectors..."
-                  disabled={isRunning}
-                  className="flex-1 pl-6 pr-4 py-5 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-base font-medium disabled:opacity-50"
-                />
-                <div className="flex items-center gap-2 pr-4">
-                  <div className="text-[10px] font-bold text-slate-400 px-2 py-1 bg-slate-100 rounded-md">
-                    {conversation.length === 0
-                      ? "Default"
-                      : `${conversation.length} msgs`}
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={!inputValue.trim() || isRunning}
-                    className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-600/20 active:scale-95"
-                  >
-                    <Send className="w-5 h-5 translate-x-0.5 -translate-y-0.5" />
-                  </button>
-                </div>
+          <div className="max-w-3xl mx-auto">
+            {/* Agent Options */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center bg-slate-100/50 p-1 rounded-2xl border border-slate-100 shadow-sm shadow-slate-200/50">
+                <button
+                  type="button"
+                  onClick={() => setWebEnabled(true)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all",
+                    webEnabled
+                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
+                      : "text-slate-400 hover:text-slate-600",
+                  )}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  Web
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWebEnabled(false)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all",
+                    !webEnabled
+                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
+                      : "text-slate-400 hover:text-slate-600",
+                  )}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  No Web
+                </button>
               </div>
-            </form>
-            <p className="text-[11px] text-slate-400 text-center mt-4 font-semibold tracking-wide uppercase">
-              Probe can be inaccurate; please double check its responses.
-            </p>
+
+              <div className="flex items-center bg-slate-100/50 p-1 rounded-2xl border border-slate-100 shadow-sm shadow-slate-200/50">
+                <button
+                  type="button"
+                  onClick={() => setSearchMode("fast")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all",
+                    searchMode === "fast"
+                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
+                      : "text-slate-400 hover:text-slate-600",
+                  )}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Fast Search
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchMode("deep")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all",
+                    searchMode === "deep"
+                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
+                      : "text-slate-400 hover:text-slate-600",
+                  )}
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  Deep Search
+                </button>
+              </div>
+            </div>
+
+            <div className="relative group">
+              <form
+                onSubmit={handleSubmit}
+                className="relative z-10 transition-all duration-300 transform group-focus-within:translate-y-[-2px]"
+              >
+                <div className="absolute inset-0 bg-indigo-500/10 blur-2xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
+                <div className="relative bg-white border border-slate-200 rounded-3xl shadow-lg shadow-slate-200/50 group-focus-within:shadow-indigo-500/10 group-focus-within:border-indigo-500 transition-all overflow-hidden flex items-center">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Ask a question about your connectors..."
+                    disabled={isRunning}
+                    className="flex-1 pl-6 pr-4 py-5 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-base font-medium disabled:opacity-50"
+                  />
+                  <div className="flex items-center gap-2 pr-4">
+                    <div className="text-[10px] font-bold text-slate-400 px-2 py-1 bg-slate-100 rounded-md">
+                      {conversation.length === 0
+                        ? "Default"
+                        : `${conversation.length} msgs`}
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={!inputValue.trim() || isRunning}
+                      className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-600/20 active:scale-95"
+                    >
+                      <Send className="w-5 h-5 translate-x-0.5 -translate-y-0.5" />
+                    </button>
+                  </div>
+                </div>
+              </form>
+              <p className="text-[11px] text-slate-400 text-center mt-4 font-semibold tracking-wide uppercase">
+                Probe can be inaccurate; please double check its responses.
+              </p>
+            </div>
           </div>
         </div>
       </div>

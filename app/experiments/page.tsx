@@ -19,13 +19,10 @@ import {
   GitMerge,
   Sparkles,
   Search,
-  ChevronRight,
-  ChevronLeft,
   CheckCircle2,
   Clock,
   AlertCircle,
   FileText,
-  X,
   Loader2,
   Circle,
   Plus,
@@ -39,7 +36,12 @@ import { cn } from "@/lib/utils";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Mode = "archive" | "live" | "decisions" | "scaffold";
-type FilterStatus = "all" | "running" | "significant" | "inconclusive" | "draft";
+type FilterStatus =
+  | "all"
+  | "running"
+  | "significant"
+  | "inconclusive"
+  | "draft";
 type SortBy = "newest" | "oldest" | "highest-lift" | "most-confident";
 
 type LocalStepStatus = "pending" | "running" | "done";
@@ -66,12 +68,37 @@ const emptyAgentState: LocalAgentState = {
 
 const statusConfig: Record<
   string,
-  { label: string; color: string; dot: string; icon: React.ComponentType<{ className?: string }> }
+  {
+    label: string;
+    color: string;
+    dot: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
 > = {
-  running: { label: "Running", color: "bg-blue-100 text-blue-700", dot: "bg-blue-500", icon: Clock },
-  significant: { label: "Significant", color: "bg-green-100 text-green-700", dot: "bg-green-500", icon: CheckCircle2 },
-  inconclusive: { label: "Inconclusive", color: "bg-slate-100 text-slate-600", dot: "bg-slate-400", icon: AlertCircle },
-  draft: { label: "Draft", color: "bg-amber-100 text-amber-700", dot: "bg-amber-400", icon: FileText },
+  running: {
+    label: "Running",
+    color: "bg-blue-100 text-blue-700",
+    dot: "bg-blue-500",
+    icon: Clock,
+  },
+  significant: {
+    label: "Significant",
+    color: "bg-green-100 text-green-700",
+    dot: "bg-green-500",
+    icon: CheckCircle2,
+  },
+  inconclusive: {
+    label: "Inconclusive",
+    color: "bg-slate-100 text-slate-600",
+    dot: "bg-slate-400",
+    icon: AlertCircle,
+  },
+  draft: {
+    label: "Draft",
+    color: "bg-amber-100 text-amber-700",
+    dot: "bg-amber-400",
+    icon: FileText,
+  },
 };
 
 const areaColors: Record<string, string> = {
@@ -89,59 +116,72 @@ const areaColors: Record<string, string> = {
 // ─── Local script runner ───────────────────────────────────────────────────────
 
 function useLocalAgent() {
-  const [agentState, setAgentState] = useState<LocalAgentState>(emptyAgentState);
+  const [agentState, setAgentState] =
+    useState<LocalAgentState>(emptyAgentState);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const runLocalScript = useCallback((scriptId: string, overrideQuery?: string) => {
-    // Clear any existing timers
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
+  const runLocalScript = useCallback(
+    (scriptId: string, overrideQuery?: string) => {
+      // Clear any existing timers
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
 
-    const script = agentScripts.find((s) => s.id === scriptId);
-    if (!script) return;
+      const script = agentScripts.find((s) => s.id === scriptId);
+      if (!script) return;
 
-    setAgentState({
-      scriptId,
-      query: overrideQuery || script.query,
-      steps: script.steps.map((s) => ({ ...s, status: "pending" })),
-      response: "",
-      isRunning: true,
-      isComplete: false,
-    });
+      setAgentState({
+        scriptId,
+        query: overrideQuery || script.query,
+        steps: script.steps.map((s) => ({ ...s, status: "pending" })),
+        response: "",
+        isRunning: true,
+        isComplete: false,
+      });
 
-    let cumulative = 0;
-    script.steps.forEach((step, index) => {
-      const runAt = cumulative;
-      cumulative += step.durationMs;
-      const doneAt = cumulative;
+      let cumulative = 0;
+      script.steps.forEach((step, index) => {
+        const runAt = cumulative;
+        cumulative += step.durationMs;
+        const doneAt = cumulative;
 
-      const runTimer = setTimeout(() => {
-        setAgentState((prev) => ({
-          ...prev,
-          steps: prev.steps.map((s) =>
-            s.id === step.id ? { ...s, status: "running" as LocalStepStatus } : s
-          ),
-        }));
-      }, runAt);
-
-      const doneTimer = setTimeout(() => {
-        setAgentState((prev) => {
-          const updated = {
+        const runTimer = setTimeout(() => {
+          setAgentState((prev) => ({
             ...prev,
             steps: prev.steps.map((s) =>
-              s.id === step.id ? { ...s, status: "done" as LocalStepStatus } : s
+              s.id === step.id
+                ? { ...s, status: "running" as LocalStepStatus }
+                : s,
             ),
-          };
-          if (index === script.steps.length - 1) {
-            return { ...updated, isRunning: false, isComplete: true, response: script.response };
-          }
-          return updated;
-        });
-      }, doneAt);
+          }));
+        }, runAt);
 
-      timersRef.current.push(runTimer, doneTimer);
-    });
-  }, []);
+        const doneTimer = setTimeout(() => {
+          setAgentState((prev) => {
+            const updated = {
+              ...prev,
+              steps: prev.steps.map((s) =>
+                s.id === step.id
+                  ? { ...s, status: "done" as LocalStepStatus }
+                  : s,
+              ),
+            };
+            if (index === script.steps.length - 1) {
+              return {
+                ...updated,
+                isRunning: false,
+                isComplete: true,
+                response: script.response,
+              };
+            }
+            return updated;
+          });
+        }, doneAt);
+
+        timersRef.current.push(runTimer, doneTimer);
+      });
+    },
+    [],
+  );
 
   const resetAgent = useCallback(() => {
     timersRef.current.forEach(clearTimeout);
@@ -169,7 +209,10 @@ function formatResponse(text: string) {
       return codeParts.map((cp, k) => {
         if (cp.startsWith("`") && cp.endsWith("`")) {
           return (
-            <code key={k} className="font-mono text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded text-xs">
+            <code
+              key={k}
+              className="font-mono text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded text-xs"
+            >
               {cp.slice(1, -1)}
             </code>
           );
@@ -178,7 +221,13 @@ function formatResponse(text: string) {
       });
     });
     return (
-      <p key={i} className={cn("text-sm text-slate-700 leading-relaxed", i > 0 && line === "" ? "mt-2" : "")}>
+      <p
+        key={i}
+        className={cn(
+          "text-sm text-slate-700 leading-relaxed",
+          i > 0 && line === "" ? "mt-2" : "",
+        )}
+      >
         {formatted}
       </p>
     );
@@ -235,16 +284,30 @@ function ArchiveDetailPanel({
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className={cn("flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full", status.color)}>
+          <span
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
+              status.color,
+            )}
+          >
             <StatusIcon className="w-3.5 h-3.5" />
             {status.label}
           </span>
-          <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border", areaColors[experiment.area])}>
+          <span
+            className={cn(
+              "text-xs font-medium px-2 py-0.5 rounded-full border",
+              areaColors[experiment.area],
+            )}
+          >
             {experiment.area}
           </span>
-          <span className="text-xs text-slate-400">Created by {experiment.createdBy}</span>
+          <span className="text-xs text-slate-400">
+            Created by {experiment.createdBy}
+          </span>
         </div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">{experiment.name}</h2>
+        <h2 className="text-xl font-semibold text-slate-900 mb-1">
+          {experiment.name}
+        </h2>
         <p className="text-xs text-slate-500">
           Started {experiment.startDate}
           {experiment.endDate && ` · Ended ${experiment.endDate}`}
@@ -266,7 +329,11 @@ function ArchiveDetailPanel({
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-slate-900">Hypothesis</h3>
-          <InlineAgentButton label="Find analogous tests" scriptId="script-exp-analogs" onAskAgent={onAskAgent} />
+          <InlineAgentButton
+            label="Find analogous tests"
+            scriptId="script-exp-analogs"
+            onAskAgent={onAskAgent}
+          />
         </div>
         <p className="text-sm text-slate-700 leading-relaxed bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
           {experiment.hypothesis}
@@ -278,24 +345,36 @@ function ArchiveDetailPanel({
         <div>
           <h3 className="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">
             Control
-            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Baseline</span>
+            <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              Baseline
+            </span>
           </h3>
           <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm min-h-[90px]">
-            <p className="text-sm text-slate-700 leading-relaxed mb-2">{experiment.control}</p>
+            <p className="text-sm text-slate-700 leading-relaxed mb-2">
+              {experiment.control}
+            </p>
             {experiment.sampleSize.control > 0 && (
-              <p className="text-xs text-slate-500 font-medium">{experiment.sampleSize.control.toLocaleString()} users</p>
+              <p className="text-xs text-slate-500 font-medium">
+                {experiment.sampleSize.control.toLocaleString()} users
+              </p>
             )}
           </div>
         </div>
         <div>
           <h3 className="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">
             Variant
-            <span className="text-xs font-normal text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">Tested</span>
+            <span className="text-xs font-normal text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+              Tested
+            </span>
           </h3>
           <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-4 shadow-sm min-h-[90px]">
-            <p className="text-sm text-slate-900 leading-relaxed mb-2">{experiment.variant}</p>
+            <p className="text-sm text-slate-900 leading-relaxed mb-2">
+              {experiment.variant}
+            </p>
             {experiment.sampleSize.variant > 0 && (
-              <p className="text-xs text-indigo-600/70 font-medium">{experiment.sampleSize.variant.toLocaleString()} users</p>
+              <p className="text-xs text-indigo-600/70 font-medium">
+                {experiment.sampleSize.variant.toLocaleString()} users
+              </p>
             )}
           </div>
         </div>
@@ -304,19 +383,34 @@ function ArchiveDetailPanel({
       {/* Metrics row */}
       <div className="flex items-center gap-8 mb-6 pb-6 border-b border-slate-100">
         <div>
-          <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">Primary Metric</p>
+          <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">
+            Primary Metric
+          </p>
           <p className="text-sm font-mono font-medium text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md max-w-fit">
             {experiment.primaryMetric}
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">Target Lift</p>
-          <p className="text-xl font-semibold text-slate-900">+{experiment.targetLift}%</p>
+          <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">
+            Target Lift
+          </p>
+          <p className="text-xl font-semibold text-slate-900">
+            +{experiment.targetLift}%
+          </p>
         </div>
         {experiment.currentLift !== undefined && (
           <div>
-            <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">Current Lift</p>
-            <p className={cn("text-xl font-semibold", experiment.currentLift >= experiment.targetLift ? "text-green-600" : "text-slate-900")}>
+            <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">
+              Current Lift
+            </p>
+            <p
+              className={cn(
+                "text-xl font-semibold",
+                experiment.currentLift >= experiment.targetLift
+                  ? "text-green-600"
+                  : "text-slate-900",
+              )}
+            >
               +{experiment.currentLift}%
             </p>
           </div>
@@ -324,32 +418,50 @@ function ArchiveDetailPanel({
       </div>
 
       {/* Secondary metrics */}
-      {experiment.secondaryMetrics && experiment.secondaryMetrics.length > 0 && (
-        <div className="mb-6">
-          <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">Watching</p>
-          <div className="flex flex-wrap gap-2">
-            {experiment.secondaryMetrics.map((m) => (
-              <span key={m} className="text-xs font-mono text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200">
-                {m}
-              </span>
-            ))}
+      {experiment.secondaryMetrics &&
+        experiment.secondaryMetrics.length > 0 && (
+          <div className="mb-6">
+            <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">
+              Watching
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {experiment.secondaryMetrics.map((m) => (
+                <span
+                  key={m}
+                  className="text-xs font-mono text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200"
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Confidence bar */}
       {experiment.confidence !== undefined && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-slate-900">Statistical Confidence</h3>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Statistical Confidence
+            </h3>
             <div className="flex items-center gap-2">
               {experiment.status === "running" && (
-                <InlineAgentButton label="Is this result trustworthy?" scriptId="script-exp-trust" onAskAgent={onAskAgent} />
+                <InlineAgentButton
+                  label="Is this result trustworthy?"
+                  scriptId="script-exp-trust"
+                  onAskAgent={onAskAgent}
+                />
               )}
-              <p className={cn(
-                "text-sm font-bold",
-                experiment.confidence >= 95 ? "text-green-600" : experiment.confidence >= 80 ? "text-amber-600" : "text-slate-500"
-              )}>
+              <p
+                className={cn(
+                  "text-sm font-bold",
+                  experiment.confidence >= 95
+                    ? "text-green-600"
+                    : experiment.confidence >= 80
+                      ? "text-amber-600"
+                      : "text-slate-500",
+                )}
+              >
                 {experiment.confidence}%
               </p>
             </div>
@@ -361,7 +473,11 @@ function ArchiveDetailPanel({
               transition={{ duration: 0.8, ease: "easeOut" }}
               className={cn(
                 "h-full rounded-full",
-                experiment.confidence >= 95 ? "bg-green-500" : experiment.confidence >= 80 ? "bg-amber-400" : "bg-blue-400"
+                experiment.confidence >= 95
+                  ? "bg-green-500"
+                  : experiment.confidence >= 80
+                    ? "bg-amber-400"
+                    : "bg-blue-400",
               )}
             />
           </div>
@@ -369,8 +485,8 @@ function ArchiveDetailPanel({
             {experiment.confidence >= 95
               ? "Statistically significant — ready to ship"
               : experiment.confidence >= 80
-              ? "Getting close — continue running"
-              : "Not yet significant — more data needed"}
+                ? "Getting close — continue running"
+                : "Not yet significant — more data needed"}
           </p>
         </div>
       )}
@@ -378,15 +494,32 @@ function ArchiveDetailPanel({
       {/* Chart */}
       {experiment.currentLift !== undefined && (
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Metric Comparison</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+            Metric Comparison
+          </h3>
           <div className="h-[180px] border border-slate-200 rounded-xl p-4 bg-white shadow-sm">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} barSize={48}>
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 12, fill: "#64748b" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  axisLine={false}
+                  tickLine={false}
+                  domain={[0, 100]}
+                />
                 <Tooltip
                   cursor={{ fill: "#f8fafc" }}
-                  contentStyle={{ fontSize: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)" }}
+                  contentStyle={{
+                    fontSize: "12px",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)",
+                  }}
                   formatter={(v: number | undefined) => [`${v ?? 0}%`, "Rate"]}
                 />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]}>
@@ -408,17 +541,29 @@ function ArchiveDetailPanel({
               <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
               </div>
-              <h3 className="text-sm font-semibold text-slate-900">AI Configuration</h3>
+              <h3 className="text-sm font-semibold text-slate-900">
+                AI Configuration
+              </h3>
             </div>
-            <InlineAgentButton label="Scaffold fully" scriptId="script-exp-scaffold" onAskAgent={onAskAgent} />
+            <InlineAgentButton
+              label="Scaffold fully"
+              scriptId="script-exp-scaffold"
+              onAskAgent={onAskAgent}
+            />
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-4">
             <div>
-              <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">Target Sample Size</p>
-              <p className="text-sm font-medium text-slate-900">3,200 per variant</p>
+              <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">
+                Target Sample Size
+              </p>
+              <p className="text-sm font-medium text-slate-900">
+                3,200 per variant
+              </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">Estimated Duration</p>
+              <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">
+                Estimated Duration
+              </p>
               <p className="text-sm font-medium text-slate-900">14 days</p>
             </div>
           </div>
@@ -433,21 +578,42 @@ function ArchiveDetailPanel({
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               <h3 className="font-semibold text-emerald-800">Ready to Ship</h3>
             </div>
-            <InlineAgentButton label="Write launch brief" scriptId="script-exp-launch" onAskAgent={onAskAgent} />
+            <InlineAgentButton
+              label="Write launch brief"
+              scriptId="script-exp-launch"
+              onAskAgent={onAskAgent}
+            />
           </div>
           <p className="text-sm text-emerald-900 leading-relaxed">
             The variant beat the control by{" "}
-            <strong className="font-semibold px-1 py-0.5 bg-emerald-100 rounded">+{experiment.currentLift}%</strong> on{" "}
-            <span className="font-mono text-xs bg-white/60 px-1 py-0.5 rounded border border-emerald-100">{experiment.primaryMetric}</span>{" "}
-            at <strong className="font-semibold text-emerald-700">{experiment.confidence}% confidence</strong>.
+            <strong className="font-semibold px-1 py-0.5 bg-emerald-100 rounded">
+              +{experiment.currentLift}%
+            </strong>{" "}
+            on{" "}
+            <span className="font-mono text-xs bg-white/60 px-1 py-0.5 rounded border border-emerald-100">
+              {experiment.primaryMetric}
+            </span>{" "}
+            at{" "}
+            <strong className="font-semibold text-emerald-700">
+              {experiment.confidence}% confidence
+            </strong>
+            .
           </p>
           <div className="mt-4 pt-4 border-t border-emerald-200/60 text-sm text-emerald-800">
             <p>
               Ran for{" "}
               {experiment.endDate
-                ? Math.round((new Date(experiment.endDate).getTime() - new Date(experiment.startDate).getTime()) / 86400000)
+                ? Math.round(
+                    (new Date(experiment.endDate).getTime() -
+                      new Date(experiment.startDate).getTime()) /
+                      86400000,
+                  )
                 : 27}{" "}
-              days with {(experiment.sampleSize.control + experiment.sampleSize.variant).toLocaleString()} total users.
+              days with{" "}
+              {(
+                experiment.sampleSize.control + experiment.sampleSize.variant
+              ).toLocaleString()}{" "}
+              total users.
             </p>
             <p className="mt-2 font-medium flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -465,8 +631,11 @@ function ArchiveDetailPanel({
             <h3 className="font-semibold text-slate-700">Inconclusive</h3>
           </div>
           <p className="text-sm text-slate-600 leading-relaxed">
-            The experiment ran to completion but did not reach statistical significance.{" "}
-            {experiment.insight ? experiment.insight : "Consider iterating on the hypothesis before re-running."}
+            The experiment ran to completion but did not reach statistical
+            significance.{" "}
+            {experiment.insight
+              ? experiment.insight
+              : "Consider iterating on the hypothesis before re-running."}
           </p>
         </div>
       )}
@@ -489,8 +658,13 @@ function LiveModePanel({
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
         <Activity className="w-10 h-10 text-slate-300 mb-4" />
-        <h3 className="font-semibold text-slate-700 mb-1">No running experiments</h3>
-        <p className="text-sm text-slate-400 max-w-xs">All experiments have concluded. Switch to Archive to review results, or Scaffold a new test.</p>
+        <h3 className="font-semibold text-slate-700 mb-1">
+          No running experiments
+        </h3>
+        <p className="text-sm text-slate-400 max-w-xs">
+          All experiments have concluded. Switch to Archive to review results,
+          or Scaffold a new test.
+        </p>
       </div>
     );
   }
@@ -498,17 +672,25 @@ function LiveModePanel({
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-1">Live experiments</h2>
+        <h2 className="text-lg font-semibold text-slate-900 mb-1">
+          Live experiments
+        </h2>
         <p className="text-sm text-slate-500">
-          {runningExperiments.length} test{runningExperiments.length !== 1 ? "s" : ""} currently running. Click any card to see full details.
+          {runningExperiments.length} test
+          {runningExperiments.length !== 1 ? "s" : ""} currently running. Click
+          any card to see full details.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {runningExperiments.map((exp) => {
-          const daysRunning = Math.round((Date.now() - new Date(exp.startDate).getTime()) / 86400000);
+          const daysRunning = Math.round(
+            (Date.now() - new Date(exp.startDate).getTime()) / 86400000,
+          );
           const daysToSignificance = exp.confidence
-            ? Math.round(((95 - exp.confidence) / exp.confidence) * daysRunning * 1.4)
+            ? Math.round(
+                ((95 - exp.confidence) / exp.confidence) * daysRunning * 1.4,
+              )
             : null;
 
           return (
@@ -519,13 +701,30 @@ function LiveModePanel({
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <span className={cn("flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full mb-2 max-w-fit", statusConfig[exp.status].color)}>
-                    <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", statusConfig[exp.status].dot)} />
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full mb-2 max-w-fit",
+                      statusConfig[exp.status].color,
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full animate-pulse",
+                        statusConfig[exp.status].dot,
+                      )}
+                    />
                     Running · Day {daysRunning}
                   </span>
-                  <h3 className="text-sm font-semibold text-slate-900 leading-snug">{exp.name}</h3>
+                  <h3 className="text-sm font-semibold text-slate-900 leading-snug">
+                    {exp.name}
+                  </h3>
                 </div>
-                <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border ml-2 flex-shrink-0", areaColors[exp.area])}>
+                <span
+                  className={cn(
+                    "text-xs font-medium px-2 py-0.5 rounded-full border ml-2 flex-shrink-0",
+                    areaColors[exp.area],
+                  )}
+                >
                   {exp.area}
                 </span>
               </div>
@@ -534,10 +733,16 @@ function LiveModePanel({
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-slate-500">Confidence</span>
-                  <span className={cn(
-                    "text-xs font-bold",
-                    (exp.confidence ?? 0) >= 95 ? "text-green-600" : (exp.confidence ?? 0) >= 80 ? "text-amber-600" : "text-slate-500"
-                  )}>
+                  <span
+                    className={cn(
+                      "text-xs font-bold",
+                      (exp.confidence ?? 0) >= 95
+                        ? "text-green-600"
+                        : (exp.confidence ?? 0) >= 80
+                          ? "text-amber-600"
+                          : "text-slate-500",
+                    )}
+                  >
                     {exp.confidence ?? 0}%
                   </span>
                 </div>
@@ -548,7 +753,11 @@ function LiveModePanel({
                     transition={{ duration: 0.8, ease: "easeOut" }}
                     className={cn(
                       "h-full rounded-full",
-                      (exp.confidence ?? 0) >= 95 ? "bg-green-500" : (exp.confidence ?? 0) >= 80 ? "bg-amber-400" : "bg-blue-400"
+                      (exp.confidence ?? 0) >= 95
+                        ? "bg-green-500"
+                        : (exp.confidence ?? 0) >= 80
+                          ? "bg-amber-400"
+                          : "bg-blue-400",
                     )}
                   />
                 </div>
@@ -557,24 +766,38 @@ function LiveModePanel({
               {/* Lift stats */}
               <div className="flex items-center gap-6 mb-4">
                 <div>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Current lift</p>
-                  <p className="text-base font-semibold text-slate-900">+{exp.currentLift ?? 0}%</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+                    Current lift
+                  </p>
+                  <p className="text-base font-semibold text-slate-900">
+                    +{exp.currentLift ?? 0}%
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Target</p>
-                  <p className="text-base font-semibold text-slate-400">+{exp.targetLift}%</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+                    Target
+                  </p>
+                  <p className="text-base font-semibold text-slate-400">
+                    +{exp.targetLift}%
+                  </p>
                 </div>
                 {daysToSignificance !== null && (
                   <div>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Est. days left</p>
-                    <p className="text-base font-semibold text-slate-900">~{Math.max(0, daysToSignificance)}</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+                      Est. days left
+                    </p>
+                    <p className="text-base font-semibold text-slate-900">
+                      ~{Math.max(0, daysToSignificance)}
+                    </p>
                   </div>
                 )}
               </div>
 
               {/* Metric + agent button */}
               <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                <span className="text-xs font-mono text-slate-500 bg-slate-50 px-2 py-0.5 rounded">{exp.primaryMetric}</span>
+                <span className="text-xs font-mono text-slate-500 bg-slate-50 px-2 py-0.5 rounded">
+                  {exp.primaryMetric}
+                </span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -606,7 +829,7 @@ function DecisionsModePanel({
   onAskAgent: (scriptId: string, experimentName?: string) => void;
 }) {
   const decisionExperiments = allExperiments.filter(
-    (e) => (e.confidence ?? 0) >= 80 || e.status === "significant"
+    (e) => (e.confidence ?? 0) >= 80 || e.status === "significant",
   );
   const [decisions, setDecisions] = useState<Record<string, ShipDecision>>({});
 
@@ -614,8 +837,13 @@ function DecisionsModePanel({
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
         <GitMerge className="w-10 h-10 text-slate-300 mb-4" />
-        <h3 className="font-semibold text-slate-700 mb-1">No decisions ready</h3>
-        <p className="text-sm text-slate-400 max-w-xs">Experiments appear here once they reach 80% confidence or better. Check back when your running tests have more data.</p>
+        <h3 className="font-semibold text-slate-700 mb-1">
+          No decisions ready
+        </h3>
+        <p className="text-sm text-slate-400 max-w-xs">
+          Experiments appear here once they reach 80% confidence or better.
+          Check back when your running tests have more data.
+        </p>
       </div>
     );
   }
@@ -623,9 +851,13 @@ function DecisionsModePanel({
   return (
     <div className="flex-1 p-6 overflow-y-auto">
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-1">Decisions needed</h2>
+        <h2 className="text-lg font-semibold text-slate-900 mb-1">
+          Decisions needed
+        </h2>
         <p className="text-sm text-slate-500">
-          {decisionExperiments.length} experiment{decisionExperiments.length !== 1 ? "s" : ""} at ≥80% confidence. Ship, hold, or close each one.
+          {decisionExperiments.length} experiment
+          {decisionExperiments.length !== 1 ? "s" : ""} at ≥80% confidence.
+          Ship, hold, or close each one.
         </p>
       </div>
 
@@ -633,22 +865,46 @@ function DecisionsModePanel({
         {decisionExperiments.map((exp) => {
           const decision = decisions[exp.id] ?? null;
           return (
-            <div key={exp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div
+              key={exp.id}
+              className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm"
+            >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className={cn("flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full", statusConfig[exp.status].color)}>
-                      {exp.status === "significant" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                      {statusConfig[exp.status].label} · {exp.confidence}% confidence
+                    <span
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
+                        statusConfig[exp.status].color,
+                      )}
+                    >
+                      {exp.status === "significant" ? (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      ) : (
+                        <Clock className="w-3.5 h-3.5" />
+                      )}
+                      {statusConfig[exp.status].label} · {exp.confidence}%
+                      confidence
                     </span>
-                    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border", areaColors[exp.area])}>
+                    <span
+                      className={cn(
+                        "text-xs font-medium px-2 py-0.5 rounded-full border",
+                        areaColors[exp.area],
+                      )}
+                    >
                       {exp.area}
                     </span>
                   </div>
-                  <h3 className="text-base font-semibold text-slate-900">{exp.name}</h3>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    {exp.name}
+                  </h3>
                 </div>
-                <InlineAgentButton label="Write launch brief" scriptId="script-exp-launch" onAskAgent={onAskAgent} />
+                <InlineAgentButton
+                  label="Write launch brief"
+                  scriptId="script-exp-launch"
+                  onAskAgent={onAskAgent}
+                />
               </div>
 
               {/* Hypothesis */}
@@ -659,16 +915,28 @@ function DecisionsModePanel({
               {/* Lift numbers */}
               <div className="flex items-center gap-6 mb-4">
                 <div>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Lift achieved</p>
-                  <p className="text-xl font-semibold text-green-600">+{exp.currentLift}%</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+                    Lift achieved
+                  </p>
+                  <p className="text-xl font-semibold text-green-600">
+                    +{exp.currentLift}%
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Target was</p>
-                  <p className="text-xl font-semibold text-slate-400">+{exp.targetLift}%</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+                    Target was
+                  </p>
+                  <p className="text-xl font-semibold text-slate-400">
+                    +{exp.targetLift}%
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Primary metric</p>
-                  <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">{exp.primaryMetric}</span>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+                    Primary metric
+                  </p>
+                  <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
+                    {exp.primaryMetric}
+                  </span>
                 </div>
               </div>
 
@@ -677,11 +945,16 @@ function DecisionsModePanel({
                 <div className="mb-4 p-3 bg-amber-50 border border-amber-100 rounded-lg">
                   <div className="flex items-center gap-1.5 mb-2">
                     <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                    <span className="text-xs font-semibold text-amber-800">Check before shipping</span>
+                    <span className="text-xs font-semibold text-amber-800">
+                      Check before shipping
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {exp.secondaryMetrics.map((m) => (
-                      <span key={m} className="text-xs font-mono text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                      <span
+                        key={m}
+                        className="text-xs font-mono text-amber-800 bg-amber-100 px-2 py-0.5 rounded"
+                      >
                         {m}
                       </span>
                     ))}
@@ -693,14 +966,40 @@ function DecisionsModePanel({
               <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
                 <p className="text-xs text-slate-500 mr-1">Your call:</p>
                 {[
-                  { key: "ship" as ShipDecision, label: "Ship it", color: "bg-emerald-600 hover:bg-emerald-700 text-white", active: "bg-emerald-700 text-white ring-2 ring-emerald-500 ring-offset-1" },
-                  { key: "needs-more-data" as ShipDecision, label: "Need more data", color: "bg-amber-100 hover:bg-amber-200 text-amber-800", active: "bg-amber-200 text-amber-900 ring-2 ring-amber-400 ring-offset-1" },
-                  { key: "no-ship" as ShipDecision, label: "No ship", color: "bg-slate-100 hover:bg-slate-200 text-slate-700", active: "bg-slate-200 text-slate-900 ring-2 ring-slate-400 ring-offset-1" },
+                  {
+                    key: "ship" as ShipDecision,
+                    label: "Ship it",
+                    color: "bg-emerald-600 hover:bg-emerald-700 text-white",
+                    active:
+                      "bg-emerald-700 text-white ring-2 ring-emerald-500 ring-offset-1",
+                  },
+                  {
+                    key: "needs-more-data" as ShipDecision,
+                    label: "Need more data",
+                    color: "bg-amber-100 hover:bg-amber-200 text-amber-800",
+                    active:
+                      "bg-amber-200 text-amber-900 ring-2 ring-amber-400 ring-offset-1",
+                  },
+                  {
+                    key: "no-ship" as ShipDecision,
+                    label: "No ship",
+                    color: "bg-slate-100 hover:bg-slate-200 text-slate-700",
+                    active:
+                      "bg-slate-200 text-slate-900 ring-2 ring-slate-400 ring-offset-1",
+                  },
                 ].map(({ key, label, color, active }) => (
                   <button
                     key={key}
-                    onClick={() => setDecisions((d) => ({ ...d, [exp.id]: d[exp.id] === key ? null : key }))}
-                    className={cn("px-3 py-1.5 text-xs font-medium rounded-lg transition-all", decision === key ? active : color)}
+                    onClick={() =>
+                      setDecisions((d) => ({
+                        ...d,
+                        [exp.id]: d[exp.id] === key ? null : key,
+                      }))
+                    }
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium rounded-lg transition-all",
+                      decision === key ? active : color,
+                    )}
                   >
                     {label}
                   </button>
@@ -744,9 +1043,9 @@ function ScaffoldModePanel({
     setSaved(true);
   };
 
-  const analogExperiments = allExperiments.filter((e) =>
-    e.area === "onboarding" || e.status === "significant"
-  ).slice(0, 3);
+  const analogExperiments = allExperiments
+    .filter((e) => e.area === "onboarding" || e.status === "significant")
+    .slice(0, 3);
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
@@ -756,10 +1055,14 @@ function ScaffoldModePanel({
             <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-indigo-600" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900">Scaffold a new experiment</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Scaffold a new experiment
+            </h2>
           </div>
           <p className="text-sm text-slate-500 ml-10">
-            Describe what you want to learn or the metric you want to move. The agent will pull relevant data, surface analogous past tests, and generate a full experiment brief.
+            Describe what you want to learn or the metric you want to move. The
+            agent will pull relevant data, surface analogous past tests, and
+            generate a full experiment brief.
           </p>
         </div>
 
@@ -776,7 +1079,10 @@ function ScaffoldModePanel({
               className="w-full h-28 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none mb-3"
             />
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-400">The agent will analyze your funnel data and past experiments to scaffold a complete test.</p>
+              <p className="text-xs text-slate-400">
+                The agent will analyze your funnel data and past experiments to
+                scaffold a complete test.
+              </p>
               <button
                 type="submit"
                 disabled={!input.trim()}
@@ -794,7 +1100,9 @@ function ScaffoldModePanel({
           <div className="mb-6 bg-white border border-slate-200 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-500" />
-              <span className="text-sm font-medium text-slate-700">Agent is working...</span>
+              <span className="text-sm font-medium text-slate-700">
+                Agent is working...
+              </span>
               {agentState.isRunning && (
                 <span className="flex items-center gap-1.5 ml-auto text-xs text-indigo-600 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
@@ -814,26 +1122,41 @@ function ScaffoldModePanel({
                   key={step.id}
                   className={cn(
                     "flex items-start gap-3 p-2.5 rounded-lg border transition-all",
-                    step.status === "done" ? "border-green-100 bg-green-50/30" :
-                    step.status === "running" ? "border-indigo-100 bg-indigo-50/30" :
-                    "border-slate-100 bg-white"
+                    step.status === "done"
+                      ? "border-green-100 bg-green-50/30"
+                      : step.status === "running"
+                        ? "border-indigo-100 bg-indigo-50/30"
+                        : "border-slate-100 bg-white",
                   )}
                 >
                   <div className="mt-0.5 flex-shrink-0">
-                    {step.status === "pending" && <Circle className="w-3.5 h-3.5 text-slate-300" />}
-                    {step.status === "running" && <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />}
-                    {step.status === "done" && <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />}
+                    {step.status === "pending" && (
+                      <Circle className="w-3.5 h-3.5 text-slate-300" />
+                    )}
+                    {step.status === "running" && (
+                      <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+                    )}
+                    {step.status === "done" && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-xs font-mono leading-relaxed",
-                      step.status === "done" ? "text-slate-600" :
-                      step.status === "running" ? "text-indigo-700" :
-                      "text-slate-400"
-                    )}>
+                    <p
+                      className={cn(
+                        "text-xs font-mono leading-relaxed",
+                        step.status === "done"
+                          ? "text-slate-600"
+                          : step.status === "running"
+                            ? "text-indigo-700"
+                            : "text-slate-400",
+                      )}
+                    >
                       {step.action}
                     </p>
                     {step.status === "done" && (
-                      <p className="text-xs text-green-700 mt-0.5">↳ {step.result}</p>
+                      <p className="text-xs text-green-700 mt-0.5">
+                        ↳ {step.result}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -844,9 +1167,14 @@ function ScaffoldModePanel({
 
         {/* Generated scaffold output */}
         {agentState.isComplete && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-slate-900 mb-4">Generated experiment brief</h3>
+              <h3 className="text-sm font-semibold text-slate-900 mb-4">
+                Generated experiment brief
+              </h3>
               <div className="space-y-3 text-sm text-slate-700 leading-relaxed">
                 {formatResponse(agentState.response)}
               </div>
@@ -855,20 +1183,39 @@ function ScaffoldModePanel({
             {/* Analogous past experiments */}
             {analogExperiments.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-slate-900 mb-3">Analogous experiments in your archive</h3>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                  Analogous experiments in your archive
+                </h3>
                 <div className="space-y-2">
                   {analogExperiments.map((exp) => (
-                    <div key={exp.id} className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-3">
-                      <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full", statusConfig[exp.status].color)}>
+                    <div
+                      key={exp.id}
+                      className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-3"
+                    >
+                      <span
+                        className={cn(
+                          "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+                          statusConfig[exp.status].color,
+                        )}
+                      >
                         {statusConfig[exp.status].label}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-800 truncate">{exp.name}</p>
+                        <p className="text-xs font-medium text-slate-800 truncate">
+                          {exp.name}
+                        </p>
                         {exp.currentLift && (
-                          <p className="text-[10px] text-slate-400 mt-0.5">+{exp.currentLift}% lift on {exp.primaryMetric}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            +{exp.currentLift}% lift on {exp.primaryMetric}
+                          </p>
                         )}
                       </div>
-                      <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded-full border flex-shrink-0", areaColors[exp.area])}>
+                      <span
+                        className={cn(
+                          "text-xs font-medium px-1.5 py-0.5 rounded-full border flex-shrink-0",
+                          areaColors[exp.area],
+                        )}
+                      >
                         {exp.area}
                       </span>
                     </div>
@@ -880,7 +1227,9 @@ function ScaffoldModePanel({
             {!saved ? (
               <div className="flex gap-3">
                 <button
-                  onClick={() => { setInput(""); }}
+                  onClick={() => {
+                    setInput("");
+                  }}
                   className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                 >
                   Start over
@@ -904,20 +1253,48 @@ function ScaffoldModePanel({
 
         {/* Archive preview (before input) */}
         {!agentState.isRunning && !agentState.isComplete && (
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <p className="text-xs font-medium text-slate-500 mb-3 uppercase tracking-wide">Archive — recent experiments for context</p>
-            <div className="space-y-2">
+          <div className="mt-10 pt-8 border-t border-slate-100">
+            <p className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">
+              Archive — recent experiments for context
+            </p>
+            <div className="space-y-3">
               {allExperiments.slice(0, 4).map((exp) => (
-                <div key={exp.id} className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-lg">
-                  <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0", statusConfig[exp.status].color)}>
-                    {statusConfig[exp.status].label}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-slate-700 truncate">{exp.name}</p>
-                    <p className="text-[10px] text-slate-400 font-mono truncate">{exp.primaryMetric}</p>
+                <div
+                  key={exp.id}
+                  className="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-slate-200 transition-all"
+                >
+                  <div className="w-20 flex-shrink-0">
+                    <span
+                      className={cn(
+                        "inline-block text-[10px] font-bold px-2 py-0.5 rounded-md text-center w-full",
+                        statusConfig[exp.status].color,
+                      )}
+                    >
+                      {statusConfig[exp.status].label}
+                    </span>
                   </div>
-                  {exp.currentLift && (
-                    <span className="text-xs font-semibold text-green-600 flex-shrink-0">+{exp.currentLift}%</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">
+                      {exp.name}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                      {exp.primaryMetric}
+                    </p>
+                  </div>
+                  {exp.currentLift !== undefined && (
+                    <div className="text-right flex-shrink-0">
+                      <span
+                        className={cn(
+                          "text-sm font-bold",
+                          exp.currentLift >= 0
+                            ? "text-green-600"
+                            : "text-red-500",
+                        )}
+                      >
+                        {exp.currentLift >= 0 ? "+" : ""}
+                        {exp.currentLift}%
+                      </span>
+                    </div>
                   )}
                 </div>
               ))}
@@ -935,12 +1312,10 @@ function RightAgentPanel({
   experiment,
   agentState,
   onRunScript,
-  onClose,
 }: {
   experiment: Experiment;
   agentState: LocalAgentState;
   onRunScript: (scriptId: string) => void;
-  onClose: () => void;
 }) {
   const [customQuery, setCustomQuery] = useState("");
 
@@ -966,94 +1341,94 @@ function RightAgentPanel({
   const chips = quickActions[experiment.status] ?? [];
 
   return (
-    <motion.div
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 380, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
-      transition={{ duration: 0.25, ease: "easeInOut" }}
-      className="flex-shrink-0 border-l border-slate-200 bg-white flex flex-col overflow-hidden"
-      style={{ width: 380 }}
-    >
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
-        <div className="min-w-0">
-          <p className="text-[10px] text-slate-400 uppercase tracking-wide">Agent</p>
-          <p className="text-sm font-semibold text-slate-900 truncate">{experiment.name}</p>
-        </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors ml-3 flex-shrink-0">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
+    <div className="flex flex-col h-full bg-white overflow-hidden">
       {/* Quick action chips */}
-      <div className="px-4 py-3 border-b border-slate-100 flex-shrink-0">
-        <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-2">Quick actions</p>
-        <div className="flex flex-wrap gap-2">
-          {chips.map((chip) => (
-            <button
-              key={chip.scriptId}
-              onClick={() => onRunScript(chip.scriptId)}
-              disabled={agentState.isRunning}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
-            >
-              <Sparkles className="w-3 h-3" />
-              {chip.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {chips.map((chip) => (
+          <button
+            key={chip.scriptId}
+            onClick={() => onRunScript(chip.scriptId)}
+            disabled={agentState.isRunning}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
+          >
+            <Sparkles className="w-3 h-3" />
+            {chip.label}
+          </button>
+        ))}
       </div>
 
       {/* Agent trace + response */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-3 pb-4">
         {/* Idle state */}
         {!agentState.isRunning && !agentState.isComplete && (
-          <div className="flex flex-col items-center justify-center h-full text-center pb-8">
+          <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center mb-3">
               <Sparkles className="w-5 h-5 text-indigo-400" />
             </div>
-            <p className="text-sm font-medium text-slate-600 mb-1">Ask the agent anything</p>
-            <p className="text-xs text-slate-400 max-w-[200px]">
-              Use a quick action above, or type a question about this experiment below.
+            <p className="text-sm font-medium text-slate-600 mb-1">
+              Ask about this test
+            </p>
+            <p className="text-[10px] text-slate-400 max-w-[200px] leading-tight">
+              Use a quick action above, or type a question about this experiment
+              below.
             </p>
           </div>
         )}
 
         {/* Step trace */}
-        {(agentState.isRunning || agentState.isComplete) && agentState.steps.map((step) => (
-          <div
-            key={step.id}
-            className={cn(
-              "flex items-start gap-2.5 p-2.5 rounded-lg border transition-all",
-              step.status === "done" ? "border-green-100 bg-green-50/30" :
-              step.status === "running" ? "border-indigo-100 bg-indigo-50/30" :
-              "border-slate-100"
-            )}
-          >
-            <div className="mt-0.5 flex-shrink-0">
-              {step.status === "pending" && <Circle className="w-3.5 h-3.5 text-slate-300" />}
-              {step.status === "running" && <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />}
-              {step.status === "done" && <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn("text-xs font-mono leading-relaxed",
-                step.status === "done" ? "text-slate-600" :
-                step.status === "running" ? "text-indigo-700" :
-                "text-slate-400"
-              )}>
-                {step.action}
-              </p>
-              {step.status === "done" && (
-                <p className="text-xs text-green-700 mt-0.5">↳ {step.result}</p>
+        {(agentState.isRunning || agentState.isComplete) &&
+          agentState.steps.map((step) => (
+            <div
+              key={step.id}
+              className={cn(
+                "flex items-start gap-2.5 p-2.5 rounded-lg border transition-all",
+                step.status === "done"
+                  ? "border-green-100 bg-green-50/30"
+                  : step.status === "running"
+                    ? "border-indigo-100 bg-indigo-50/30"
+                    : "border-slate-100",
               )}
+            >
+              <div className="mt-0.5 flex-shrink-0">
+                {step.status === "pending" && (
+                  <Circle className="w-3.5 h-3.5 text-slate-300" />
+                )}
+                {step.status === "running" && (
+                  <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+                )}
+                {step.status === "done" && (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className={cn(
+                    "text-[10px] font-mono leading-relaxed",
+                    step.status === "done"
+                      ? "text-slate-600"
+                      : step.status === "running"
+                        ? "text-indigo-700"
+                        : "text-slate-400",
+                  )}
+                >
+                  {step.action}
+                </p>
+                {step.status === "done" && (
+                  <p className="text-[10px] text-green-700 mt-0.5">
+                    ↳ {step.result}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
         {/* Synthesis indicator */}
         {agentState.isComplete && (
           <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
             <Sparkles className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-            <span className="text-xs text-indigo-700 font-medium">Synthesis complete</span>
+            <span className="text-[10px] text-indigo-700 font-bold">
+              Analysis complete
+            </span>
           </div>
         )}
 
@@ -1066,7 +1441,7 @@ function RightAgentPanel({
       </div>
 
       {/* Custom query input */}
-      <div className="px-4 py-3 border-t border-slate-100 flex-shrink-0">
+      <div className="pt-3 flex-shrink-0">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -1080,8 +1455,8 @@ function RightAgentPanel({
           <input
             value={customQuery}
             onChange={(e) => setCustomQuery(e.target.value)}
-            placeholder="Ask about this experiment..."
-            className="flex-1 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+            placeholder="Ask agent..."
+            className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400 font-medium"
           />
           <button
             type="submit"
@@ -1092,62 +1467,7 @@ function RightAgentPanel({
           </button>
         </form>
       </div>
-    </motion.div>
-  );
-}
-
-// ─── ExperimentListItem ────────────────────────────────────────────────────────
-
-function ExperimentListItem({
-  experiment,
-  isSelected,
-  onSelect,
-}: {
-  experiment: Experiment;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  const status = statusConfig[experiment.status];
-  const StatusIcon = status.icon;
-
-  return (
-    <button
-      onClick={onSelect}
-      className={cn(
-        "w-full text-left px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors",
-        isSelected && "bg-indigo-50 border-l-2 border-l-indigo-500"
-      )}
-    >
-      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-        <span className={cn("flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full", status.color)}>
-          <StatusIcon className="w-3 h-3" />
-          {status.label}
-        </span>
-        <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full border", areaColors[experiment.area])}>
-          {experiment.area}
-        </span>
-      </div>
-      <p className={cn("text-xs font-medium leading-snug", isSelected ? "text-indigo-700" : "text-slate-700")}>
-        {experiment.name}
-      </p>
-      <div className="flex items-center justify-between mt-1">
-        <p className="text-[10px] text-slate-400 font-mono truncate flex-1 mr-2">{experiment.primaryMetric}</p>
-        {experiment.currentLift !== undefined && (
-          <span className="text-[10px] font-semibold text-green-600 flex-shrink-0">+{experiment.currentLift}%</span>
-        )}
-      </div>
-      {experiment.confidence !== undefined && (
-        <div className="mt-1.5 h-1 bg-slate-100 rounded-full overflow-hidden">
-          <div
-            className={cn(
-              "h-full rounded-full",
-              experiment.confidence >= 95 ? "bg-green-400" : experiment.confidence >= 80 ? "bg-amber-400" : "bg-blue-300"
-            )}
-            style={{ width: `${experiment.confidence}%` }}
-          />
-        </div>
-      )}
-    </button>
+    </div>
   );
 }
 
@@ -1155,11 +1475,11 @@ function ExperimentListItem({
 
 export default function ExperimentsPage() {
   const [mode, setMode] = useState<Mode>("archive");
-  const [selected, setSelected] = useState<Experiment>(experiments[0]);
-  const [agentPanelOpen, setAgentPanelOpen] = useState(false);
+  const [selected, setSelected] = useState<Experiment>(experiments[2]); // Default to one with data
+  const [agentPanelOpen, setAgentPanelOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
-  const [sortBy, setSortBy] = useState<SortBy>("newest");
+  const [sortBy] = useState<SortBy>("newest");
   const [allExperiments, setAllExperiments] = useState(experiments);
 
   const { agentState, runLocalScript, resetAgent } = useLocalAgent();
@@ -1171,7 +1491,7 @@ export default function ExperimentsPage() {
       // Small delay so panel is open before script starts
       setTimeout(() => runLocalScript(scriptId), 50);
     },
-    [resetAgent, runLocalScript]
+    [resetAgent, runLocalScript],
   );
 
   // Filter + sort experiments
@@ -1187,17 +1507,27 @@ export default function ExperimentsPage() {
       return matchSearch && matchFilter;
     })
     .sort((a, b) => {
-      if (sortBy === "newest") return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
-      if (sortBy === "oldest") return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-      if (sortBy === "highest-lift") return (b.currentLift ?? 0) - (a.currentLift ?? 0);
-      if (sortBy === "most-confident") return (b.confidence ?? 0) - (a.confidence ?? 0);
+      if (sortBy === "newest")
+        return (
+          new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        );
+      if (sortBy === "oldest")
+        return (
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        );
+      if (sortBy === "highest-lift")
+        return (b.currentLift ?? 0) - (a.currentLift ?? 0);
+      if (sortBy === "most-confident")
+        return (b.confidence ?? 0) - (a.confidence ?? 0);
       return 0;
     });
 
-  const runningExperiments = allExperiments.filter((e) => e.status === "running");
+  const runningExperiments = allExperiments.filter(
+    (e) => e.status === "running",
+  );
 
   const handleSaveScaffold = (hypothesis: string) => {
-    const newExp: typeof experiments[0] = {
+    const newExp: (typeof experiments)[0] = {
       id: `exp-${Date.now()}`,
       name: "New Experiment (Draft)",
       status: "draft",
@@ -1217,190 +1547,184 @@ export default function ExperimentsPage() {
   };
 
   const modes = [
-    { id: "archive" as Mode, label: "Archive", Icon: BookOpen, description: "Browse all experiments" },
-    { id: "live" as Mode, label: "Live", Icon: Activity, description: "Running tests" },
-    { id: "decisions" as Mode, label: "Decisions", Icon: GitMerge, description: "Ship or hold" },
-    { id: "scaffold" as Mode, label: "Scaffold", Icon: Sparkles, description: "Start a new test" },
+    {
+      id: "archive" as Mode,
+      label: "Archive",
+      Icon: BookOpen,
+      description: "Browse all tests",
+      color: "text-blue-600",
+      activeBg: "bg-blue-600",
+    },
+    {
+      id: "live" as Mode,
+      label: "Live",
+      Icon: Activity,
+      description: "Running now",
+      color: "text-emerald-600",
+      activeBg: "bg-emerald-600",
+    },
+    {
+      id: "decisions" as Mode,
+      label: "Decisions",
+      Icon: GitMerge,
+      description: "Ship or hold",
+      color: "text-indigo-600",
+      activeBg: "bg-indigo-600",
+    },
+    {
+      id: "scaffold" as Mode,
+      label: "Scaffold",
+      Icon: Sparkles,
+      description: "Start new test",
+      color: "text-amber-600",
+      activeBg: "bg-amber-600",
+    },
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* ── Left Panel ─────────────────────────────────────────────────────── */}
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      {/* ── Left Panel: Sources / Experiments ────────────────────────────────── */}
       <div className="w-72 border-r border-slate-200 bg-white flex flex-col flex-shrink-0">
-        {/* Mode tabs */}
-        <div className="px-3 pt-3 pb-0 border-b border-slate-100">
-          <div className="grid grid-cols-4 gap-0.5 mb-0">
-            {modes.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                onClick={() => setMode(id)}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 px-1 py-2 text-center rounded-t-lg transition-colors",
-                  mode === id
-                    ? "text-indigo-700 border-b-2 border-indigo-600 bg-indigo-50/50"
-                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50 border-b-2 border-transparent"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-[10px] font-semibold">{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Mode description */}
-        <div className="px-4 py-2 bg-slate-50 border-b border-slate-100">
-          <p className="text-[10px] text-slate-500">
-            {modes.find((m) => m.id === mode)?.description}
+        <div className="p-4 border-b border-slate-100">
+          <h1 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+            Experiments
+          </h1>
+          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">
+            {allExperiments.length} Sources Connected
           </p>
         </div>
 
-        {/* Search + filter (Archive mode only) */}
-        {mode === "archive" && (
-          <div className="px-3 py-2 border-b border-slate-100 space-y-2">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search experiments..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
-              />
-              {search && (
-                <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
-            {/* Filter chips */}
-            <div className="flex flex-wrap gap-1">
-              {(["all", "running", "significant", "inconclusive", "draft"] as FilterStatus[]).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={cn(
-                    "px-2 py-0.5 text-[10px] font-medium rounded-full transition-colors capitalize",
-                    filter === f
-                      ? "bg-indigo-100 text-indigo-700"
-                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                  )}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-
-            {/* Sort */}
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-slate-400">{filteredExperiments.length} experiment{filteredExperiments.length !== 1 ? "s" : ""}</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortBy)}
-                className="text-[10px] text-slate-500 bg-transparent border-none focus:outline-none cursor-pointer"
-              >
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-                <option value="highest-lift">Highest lift</option>
-                <option value="most-confident">Most confident</option>
-              </select>
-            </div>
+        <div className="px-3 py-3 border-b border-slate-100">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search experiments..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+            />
           </div>
-        )}
 
-        {/* Experiment list (Archive + Live mode) */}
-        {(mode === "archive" || mode === "live") && (
-          <div className="flex-1 overflow-y-auto">
-            {filteredExperiments.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <p className="text-sm text-slate-400">No experiments match your search.</p>
-              </div>
-            ) : (
-              filteredExperiments.map((exp) => (
-                <ExperimentListItem
-                  key={exp.id}
-                  experiment={exp}
-                  isSelected={selected.id === exp.id}
-                  onSelect={() => {
-                    setSelected(exp);
-                    if (mode === "live") setMode("archive");
-                  }}
-                />
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Decisions + Scaffold: show archive count */}
-        {(mode === "decisions" || mode === "scaffold") && (
-          <div className="flex-1 overflow-y-auto">
-            <div className="px-4 py-3 border-b border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-2">Archive ({allExperiments.length} experiments)</p>
-            </div>
-            {allExperiments.map((exp) => (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {(["all", "running", "significant"] as FilterStatus[]).map((f) => (
               <button
-                key={exp.id}
-                onClick={() => { setSelected(exp); setMode("archive"); }}
-                className="w-full text-left px-4 py-2 border-b border-slate-50 hover:bg-slate-50 transition-colors"
+                key={f}
+                onClick={() => setFilter(f)}
+                className={cn(
+                  "px-2 py-0.5 text-[9px] font-bold rounded-full transition-all uppercase tracking-tighter",
+                  filter === f
+                    ? "bg-slate-800 text-white"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                )}
               >
-                <div className="flex items-center gap-2">
-                  <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", statusConfig[exp.status].dot)} />
-                  <p className="text-xs text-slate-600 truncate flex-1">{exp.name}</p>
-                </div>
+                {f}
               </button>
             ))}
           </div>
-        )}
+        </div>
 
-        {/* Scaffold button */}
-        <div className="p-3 border-t border-slate-100">
-          <button
-            onClick={() => setMode("scaffold")}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Scaffold new experiment
-          </button>
+        {/* Unified Experiment List */}
+        <div className="flex-1 overflow-y-auto scrollbar-hide">
+          <div className="px-4 py-3">
+            <button
+              onClick={() => setMode("scaffold")}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-all mb-4"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add experiment
+            </button>
+
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3">
+              All Experiments
+            </p>
+            <div className="space-y-0.5 -mx-4">
+              {filteredExperiments.map((exp) => (
+                <button
+                  key={exp.id}
+                  onClick={() => {
+                    setSelected(exp);
+                    setMode("archive");
+                  }}
+                  className={cn(
+                    "w-full text-left px-4 py-2.5 flex items-start gap-3 transition-colors group",
+                    selected.id === exp.id && mode === "archive"
+                      ? "bg-indigo-50/50 border-r-2 border-indigo-600"
+                      : "hover:bg-slate-50",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "mt-1 w-2 h-2 rounded-full flex-shrink-0",
+                      statusConfig[exp.status].dot,
+                    )}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        "text-xs font-semibold truncate",
+                        selected.id === exp.id && mode === "archive"
+                          ? "text-indigo-700"
+                          : "text-slate-700",
+                      )}
+                    >
+                      {exp.name}
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                      {exp.primaryMetric}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Center + Right ─────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden flex">
-        {/* Center panel */}
-        <div className="flex-1 bg-slate-50 overflow-hidden flex flex-col relative">
-          {/* Agent panel toggle */}
-          {mode === "archive" && (
-            <button
-              onClick={() => setAgentPanelOpen((p) => !p)}
-              className={cn(
-                "absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1 py-3 px-1.5 bg-white border border-slate-200 rounded-l-lg shadow-sm hover:bg-slate-50 transition-colors",
-                agentPanelOpen && "border-r-0 rounded-r-none"
-              )}
-              title={agentPanelOpen ? "Close agent panel" : "Open agent panel"}
-            >
-              {agentPanelOpen ? (
-                <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
-              ) : (
-                <>
-                  <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
-                  <Sparkles className="w-3 h-3 text-indigo-500" />
-                </>
-              )}
+      {/* ── Center Panel: Main Workspace ────────────────────────────────────── */}
+      <div className="flex-1 overflow-hidden flex flex-col relative bg-slate-50">
+        <div className="h-14 border-b border-slate-200 bg-white/80 backdrop-blur-md px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <h2 className="font-bold text-slate-900 tracking-tight">
+              {mode === "archive"
+                ? selected.name
+                : modes.find((m) => m.id === mode)?.label}
+            </h2>
+            {mode === "archive" && (
+              <span
+                className={cn(
+                  "text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tighter",
+                  statusConfig[selected.status].color,
+                )}
+              >
+                {statusConfig[selected.status].label}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              <Search className="w-4 h-4" />
             </button>
-          )}
+            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              <Activity className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
-          {/* Center content switches by mode */}
+        <div className="flex-1 overflow-hidden relative">
           <AnimatePresence mode="wait">
             {mode === "archive" && (
               <motion.div
                 key={`archive-${selected.id}`}
-                initial={{ opacity: 0, x: 8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                className="h-full overflow-hidden flex flex-col"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="h-full"
               >
-                <ArchiveDetailPanel experiment={selected} onAskAgent={handleAskAgent} />
+                <ArchiveDetailPanel
+                  experiment={selected}
+                  onAskAgent={handleAskAgent}
+                />
               </motion.div>
             )}
 
@@ -1410,7 +1734,7 @@ export default function ExperimentsPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full overflow-hidden flex flex-col"
+                className="h-full"
               >
                 <LiveModePanel
                   runningExperiments={runningExperiments}
@@ -1429,9 +1753,12 @@ export default function ExperimentsPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full overflow-hidden flex flex-col"
+                className="h-full"
               >
-                <DecisionsModePanel experiments={allExperiments} onAskAgent={(scriptId) => handleAskAgent(scriptId)} />
+                <DecisionsModePanel
+                  experiments={allExperiments}
+                  onAskAgent={(scriptId) => handleAskAgent(scriptId)}
+                />
               </motion.div>
             )}
 
@@ -1441,25 +1768,120 @@ export default function ExperimentsPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full overflow-hidden flex flex-col"
+                className="h-full"
               >
-                <ScaffoldModePanel allExperiments={allExperiments} onSave={handleSaveScaffold} />
+                <ScaffoldModePanel
+                  allExperiments={allExperiments}
+                  onSave={handleSaveScaffold}
+                />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
+      </div>
 
-        {/* Right agent panel */}
-        <AnimatePresence>
-          {agentPanelOpen && mode === "archive" && (
-            <RightAgentPanel
-              experiment={selected}
-              agentState={agentState}
-              onRunScript={handleAskAgent}
-              onClose={() => setAgentPanelOpen(false)}
-            />
-          )}
-        </AnimatePresence>
+      {/* ── Right Panel: Studio ────────────────────────────────────────────── */}
+      <div className="w-[340px] border-l border-slate-200 bg-white flex flex-col flex-shrink-0">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
+            Studio
+          </h2>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setAgentPanelOpen(!agentPanelOpen)}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors",
+                agentPanelOpen
+                  ? "text-indigo-600 bg-indigo-50"
+                  : "text-slate-400 hover:bg-slate-50",
+              )}
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 flex-1 overflow-y-auto scrollbar-hide">
+          <div className="grid grid-cols-2 gap-2.5 mb-6">
+            {modes.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setMode(m.id)}
+                className={cn(
+                  "flex flex-col items-start gap-2.5 p-3.5 rounded-2xl border text-left transition-all duration-200 group",
+                  mode === m.id
+                    ? cn(
+                        "border-transparent ring-2 ring-indigo-500 ring-offset-2",
+                        m.activeBg,
+                        "text-white shadow-lg shadow-indigo-100",
+                      )
+                    : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm",
+                )}
+              >
+                <div
+                  className={cn(
+                    "p-2 rounded-xl transition-colors",
+                    mode === m.id
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-50 text-slate-600 group-hover:bg-slate-100",
+                  )}
+                >
+                  <m.Icon className="w-4 h-4" />
+                </div>
+                <div>
+                  <p
+                    className={cn(
+                      "text-xs font-bold leading-none",
+                      mode === m.id ? "text-white" : "text-slate-900",
+                    )}
+                  >
+                    {m.label}
+                  </p>
+                  <p
+                    className={cn(
+                      "text-[9px] font-medium mt-1 leading-tight",
+                      mode === m.id ? "text-white/80" : "text-slate-400",
+                    )}
+                  >
+                    {m.description}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Agent Section inside Studio if panel open */}
+          <AnimatePresence>
+            {agentPanelOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="border-t border-slate-100 mt-2 pt-6 overflow-hidden flex flex-col h-full min-h-0"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Agent Intelligence
+                  </h3>
+                  <button
+                    onClick={() => resetAgent()}
+                    className="text-[9px] font-bold text-indigo-600 hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div className="flex-1 flex flex-col min-h-0">
+                  <RightAgentPanel
+                    experiment={selected}
+                    agentState={agentState}
+                    onRunScript={handleAskAgent}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );

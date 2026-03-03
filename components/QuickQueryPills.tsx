@@ -42,10 +42,10 @@ export default function QuickQueryPills({
         {quickQueryPills.map((pill) => (
           <motion.button
             key={pill.id}
-            whileHover={{ scale: 1.05, y: -2 }}
+            whileHover={{ scale: 1.01, y: -0.5 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleClick(pill)}
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm hover:border-indigo-300 hover:shadow-sm transition-all whitespace-nowrap font-medium"
+            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm hover:border-slate-300 transition-all whitespace-nowrap font-medium"
           >
             <ToolLogo tool={pill.tool as Tool} size="sm" />
             <span>{pill.label}</span>
