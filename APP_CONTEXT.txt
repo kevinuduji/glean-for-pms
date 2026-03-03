@@ -1,6 +1,6 @@
-**The core idea:** Product managers are drowning in disconnected tools. They use Jira to track tasks, Amplitude to watch metrics, GitHub to see code changes, and Slack to discuss decisions — but none of these talk to each other. When something breaks or a metric drops, PMs have to manually stitch together context from all these places. Glean for PMs does that automatically.
+**The core idea:** Product managers are drowning in disconnected tools. They use Jira to track tasks, Amplitude to watch metrics, GitHub to see code changes, and Slack to discuss decisions — but none of these talk to each other. When something breaks or a metric drops, PMs have to manually stitch together context from all these places. Probe does that automatically.
 
-**The simplest way to describe it:** Cursor made coding faster by eliminating the slow, manual parts so engineers could focus on judgment. Glean for PMs does the same thing for product decisions.
+**The simplest way to describe it:** Cursor made coding faster by eliminating the slow, manual parts so engineers could focus on judgment. Probe does the same thing for product decisions.
 
 ---
 

@@ -30,8 +30,8 @@ export const recentMessages: SlackMessage[] = [
   {
     id: 'M01',
     channel: '#pm-alerts',
-    author: 'Glean Bot',
-    avatarInitial: 'G',
+    author: 'Probe Bot',
+    avatarInitial: 'P',
     text: '🔴 Alert: Checkout funnel drop-off increased to 71% at "Payment details" step — up from 58% yesterday. Possible regression after PM-311 deploy.',
     timestamp: '10:03 AM',
     isAlert: true,
@@ -68,8 +68,8 @@ export const recentMessages: SlackMessage[] = [
   {
     id: 'M05',
     channel: '#pm-alerts',
-    author: 'Glean Bot',
-    avatarInitial: 'G',
+    author: 'Probe Bot',
+    avatarInitial: 'P',
     text: '📈 DAU up 8.2% week-over-week (1,024 vs 946). Advanced Filters feature showing strong correlation — users who adopted it have 67% D30 retention vs 43% baseline.',
     timestamp: 'Yesterday 4:05 PM',
     isAlert: false,
