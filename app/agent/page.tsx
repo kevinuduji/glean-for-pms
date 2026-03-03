@@ -8,6 +8,7 @@ import { useAgentStore } from '@/lib/store';
 import QuickQueryPills from '@/components/QuickQueryPills';
 import AgentWorkflowPanel from '@/components/AgentWorkflowPanel';
 import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
 
 function AgentPageInner() {
   const searchParams = useSearchParams();
@@ -54,31 +55,25 @@ function AgentPageInner() {
     runScript(scriptId, queryText);
   };
 
-  const formatResponse = (text: string) => {
-    const lines = text.split('\n');
-    return lines.map((line, i) => {
-      // Bold text
-      const parts = line.split(/(\*\*[^*]+\*\*)/g);
-      const formatted = parts.map((part, j) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={j} className="font-semibold text-slate-900">{part.slice(2, -2)}</strong>;
-        }
-        // Inline code
-        const codeParts = part.split(/(`[^`]+`)/g);
-        return codeParts.map((cp, k) => {
-          if (cp.startsWith('`') && cp.endsWith('`')) {
-            return <code key={k} className="font-mono text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded text-xs">{cp.slice(1, -1)}</code>;
-          }
-          return cp;
-        });
-      });
-      return (
-        <p key={i} className={cn('text-sm text-slate-700 leading-relaxed', i > 0 && line === '' ? 'mt-2' : '')}>
-          {formatted}
-        </p>
-      );
-    });
-  };
+  const formatResponse = (text: string) => (
+    <ReactMarkdown
+      components={{
+        p: ({ children }) => <p className="text-sm text-slate-700 leading-relaxed mb-2 last:mb-0">{children}</p>,
+        strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
+        code: ({ children }) => <code className="font-mono text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded text-xs">{children}</code>,
+        ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 mb-2 text-sm text-slate-700">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal pl-4 space-y-1 mb-2 text-sm text-slate-700">{children}</ol>,
+        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+        h1: ({ children }) => <h1 className="text-base font-semibold text-slate-900 mb-1">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-sm font-semibold text-slate-900 mb-1">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-semibold text-slate-800 mb-1">{children}</h3>,
+        hr: () => <hr className="border-slate-200 my-3" />,
+        blockquote: ({ children }) => <blockquote className="border-l-2 border-indigo-300 pl-3 text-slate-500 italic">{children}</blockquote>,
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
