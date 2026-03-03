@@ -1,4 +1,4 @@
-export const activeIntegrations = [
+export const activeConnectors = [
   {
     id: "amplitude",
     name: "Amplitude",

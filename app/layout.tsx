@@ -20,7 +20,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-slate-50`}>
         <div className="flex h-full">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto">{children}</main>
+          <main className="flex-1 overflow-hidden">{children}</main>
         </div>
       </body>
     </html>

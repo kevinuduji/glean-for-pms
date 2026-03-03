@@ -152,7 +152,7 @@ These are in your Sessions page, pre-filtered and annotated. The checkout sessio
       { id: 's7-5', tool: 'amplitude', action: 'Pulling feature usage — identifying underperforming shipped features', result: '3 features with <5% adoption 60 days post-launch', durationMs: 840 },
       { id: 's7-6', tool: 'agent', action: 'Generating prioritized build recommendations...', result: 'Priority list generated', durationMs: 1500 },
     ],
-    response: `Based on data across all connected sources, here's your prioritized build list:
+    response: `Based on data across all connected connectors, here's your prioritized build list:
 
 **P0 — Fix (this week):**
 1. **CSV Export on /reports** — 47 dead clicks/day on a disabled button. A fix PR (#198) has been open for 34 days. Ship it.

@@ -34,7 +34,7 @@ import { slackChannels, recentMessages } from "@/lib/mock-data/slack";
 import { jiraIssues, jiraEpics, currentSprint } from "@/lib/mock-data/jira";
 import { notionDocs, notionDatabases } from "@/lib/mock-data/notion";
 
-import { activeIntegrations, comingSoon } from "@/lib/mock-data/integrations";
+import { activeConnectors, comingSoon } from "@/lib/mock-data/connectors";
 
 // ─── Amplitude Viewer ────────────────────────────────────────────────────────
 
@@ -1341,13 +1341,13 @@ const viewerConfig: Record<
 };
 
 function DataViewerModal({
-  integrationId,
+  connectorId,
   onClose,
 }: {
-  integrationId: string;
+  connectorId: string;
   onClose: () => void;
 }) {
-  const cfg = viewerConfig[integrationId];
+  const cfg = viewerConfig[connectorId];
   if (!cfg) return null;
   const ViewerComponent = cfg.component;
 
@@ -1368,7 +1368,7 @@ function DataViewerModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <ToolLogo
-              tool={integrationId as Tool}
+              tool={connectorId as Tool}
               size="md"
               className="w-9 h-9 rounded-xl"
             />
@@ -1395,7 +1395,7 @@ function DataViewerModal({
         {/* Footer */}
         <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
           <span className="text-[10px] text-slate-400">
-            Live data from {cfg.title} integration
+            Live data from {cfg.title} connector
           </span>
           <span className="flex items-center gap-1 text-[10px] font-medium text-green-600">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -1409,8 +1409,8 @@ function DataViewerModal({
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default function IntegrationsPage() {
-  const [selectedIntegration, setSelectedIntegration] = useState<string | null>(
+export default function ConnectorsPage() {
+  const [selectedConnector, setSelectedConnector] = useState<string | null>(
     null,
   );
 
@@ -1418,43 +1418,43 @@ export default function IntegrationsPage() {
     <div className="p-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900">Integrations</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Connectors</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Connected data sources that power your AI agent. All data is queried
-          in real time.
+          Connected data connectors that power your AI agent. All data is
+          queried in real time.
         </p>
       </div>
 
-      {/* Active integrations */}
+      {/* Active connectors */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
             Active
           </h2>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-            {activeIntegrations.length} connected
+            {activeConnectors.length} connected
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {activeIntegrations.map((integration) => (
+          {activeConnectors.map((connector) => (
             <div
-              key={integration.id}
+              key={connector.id}
               className="bg-white rounded-xl border border-zinc-200 shadow-sm p-5 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <ToolLogo
-                    tool={integration.id as Tool}
+                    tool={connector.id as Tool}
                     size="lg"
                     className="w-10 h-10 rounded-xl"
                   />
                   <div>
                     <h3 className="font-semibold text-slate-900 text-sm">
-                      {integration.name}
+                      {connector.name}
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {integration.description}
+                      {connector.description}
                     </p>
                   </div>
                 </div>
@@ -1466,7 +1466,7 @@ export default function IntegrationsPage() {
 
               {/* Stats */}
               <div className="flex gap-4 py-3 border-t border-b border-slate-100 mb-3">
-                {integration.stats.map((stat) => (
+                {connector.stats.map((stat) => (
                   <div key={stat.label}>
                     <p className="text-sm font-semibold text-slate-900">
                       {stat.value}
@@ -1481,10 +1481,10 @@ export default function IntegrationsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs text-slate-400">
                   <Clock className="w-3 h-3" />
-                  <span>Synced {integration.lastSynced}</span>
+                  <span>Synced {connector.lastSynced}</span>
                 </div>
                 <button
-                  onClick={() => setSelectedIntegration(integration.id)}
+                  onClick={() => setSelectedConnector(connector.id)}
                   className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 transition-colors hover:underline"
                 >
                   View Data
@@ -1534,10 +1534,10 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Data viewer modal */}
-      {selectedIntegration && (
+      {selectedConnector && (
         <DataViewerModal
-          integrationId={selectedIntegration}
-          onClose={() => setSelectedIntegration(null)}
+          connectorId={selectedConnector}
+          onClose={() => setSelectedConnector(null)}
         />
       )}
     </div>

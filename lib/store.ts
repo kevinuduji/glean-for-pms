@@ -208,7 +208,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     const placeholderStep: AgentStep = {
       id: 'live-placeholder',
       tool: 'agent',
-      action: 'Connecting to data sources and analyzing your query...',
+      action: 'Connecting to data connectors and analyzing your query...',
       result: '',
       durationMs: 0,
     };

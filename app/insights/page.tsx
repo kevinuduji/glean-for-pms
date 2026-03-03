@@ -193,7 +193,7 @@ export default function InsightsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Insights</h1>
           <p className="text-slate-500 text-sm mt-1">
-            Signals from your connected sources. Pin your focus metric to
+            Signals from your connected connectors. Pin your focus metric to
             monitor closely.
           </p>
         </div>

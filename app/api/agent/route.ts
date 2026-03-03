@@ -179,7 +179,7 @@ function buildSteps(query: string): AgentStep[] {
   steps.push({
     id: mkId(),
     tool: 'agent',
-    action: 'Synthesizing findings across all connected data sources...',
+    action: 'Synthesizing findings across all connected data connectors...',
     result: 'Analysis complete — response generated',
     durationMs: 1400,
   });

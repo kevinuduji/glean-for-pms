@@ -25,14 +25,14 @@ import {
 import { cn } from "@/lib/utils";
 import ToolLogo, { Tool } from "@/components/ToolLogo";
 
-import { activeIntegrations, comingSoon } from "@/lib/mock-data/integrations";
+import { activeConnectors, comingSoon } from "@/lib/mock-data/connectors";
 
 type SettingsSection =
   | "account"
   | "privacy"
   | "billing"
   | "usage"
-  | "integrations"
+  | "connectors"
   | "capabilities";
 
 interface SectionConfig {
@@ -68,10 +68,10 @@ const sections: SectionConfig[] = [
     description: "Monitor your API and resource consumption",
   },
   {
-    id: "integrations",
-    label: "Integrations",
+    id: "connectors",
+    label: "Connectors",
     icon: Plug,
-    description: "Connect your tools and data sources",
+    description: "Connect your tools and data connectors",
   },
 
   {
@@ -96,8 +96,8 @@ export default function SettingsPage() {
         return <BillingSettings />;
       case "usage":
         return <UsageSettings />;
-      case "integrations":
-        return <IntegrationsSettings />;
+      case "connectors":
+        return <ConnectorsSettings />;
 
       case "capabilities":
         return <CapabilitiesSettings />;
@@ -542,16 +542,16 @@ function UsageSettings() {
   );
 }
 
-function IntegrationsSettings() {
-  const allIntegrations = [
-    ...activeIntegrations.map((i) => ({ ...i, status: "Connected" })),
+function ConnectorsSettings() {
+  const allConnectors = [
+    ...activeConnectors.map((i) => ({ ...i, status: "Connected" })),
     ...comingSoon.map((i) => ({ ...i, status: "Coming Soon" })),
   ];
 
   return (
     <div className="space-y-8">
       <div className="grid gap-4">
-        {allIntegrations.map((c) => (
+        {allConnectors.map((c) => (
           <div
             key={c.id}
             className="p-4 rounded-2xl border border-slate-200 bg-white flex items-center justify-between hover:shadow-md hover:border-indigo-100 transition-all group"
