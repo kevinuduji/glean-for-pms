@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  LineChart, Line, BarChart, Bar, AreaChart, Area,
-  ResponsiveContainer, Tooltip
-} from 'recharts';
-import {
-  dauTimeSeries, signupFunnelNov, checkoutCompletionSeries,
-  homepageConversionSeries
-} from '@/lib/mock-data/amplitude';
-import { validationErrorTimeSeries } from '@/lib/mock-data/sentry';
-import { paymentsLatency } from '@/lib/mock-data/prometheus';
-import { TrendingDown, TrendingUp, ExternalLink, AlertTriangle, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+  Pin,
+  Sparkles,
+  X,
+  TrendingUp,
+  TrendingDown,
+  ExternalLink,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAgentStore } from "@/lib/store";
+import ToolLogo, { Tool } from "@/components/ToolLogo";
 
-type MetricCard = {
+type Metric = {
   id: string;
   title: string;
   value: string;
@@ -24,307 +24,382 @@ type MetricCard = {
   badge?: string;
   badgeColor?: string;
   source: string;
-  sourceBg: string;
-  sourceColor: string;
-  chartType: 'line' | 'bar' | 'area' | 'none';
-  chartData: Array<Record<string, unknown>>;
-  chartKey: string;
-  chartColor: string;
-  annotation?: string;
+  sourceTool: Tool;
+  signal: string;
 };
 
-const latencyChartData = paymentsLatency.slice(40).map(p => ({
-  time: new Date(p.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' }),
-  p95: p.p95,
-}));
-
-const metricCards: MetricCard[] = [
+const METRIC_CATALOG: Metric[] = [
   {
-    id: 'dau',
-    title: 'Daily Active Users',
-    value: '11,847',
-    delta: '+3.2% vs last week',
+    id: "checkout",
+    title: "Checkout Completion Rate",
+    value: "61%",
+    delta: "-17% since Dec 1",
+    deltaPositive: false,
+    badge: "P0",
+    badgeColor: "bg-red-100 text-red-700",
+    source: "Amplitude",
+    sourceTool: "amplitude",
+    signal:
+      "Dropped from 78% at 14:23 UTC Dec 1 — correlates with payments-service v2.4.1 deploy.",
+  },
+  {
+    id: "payment-latency",
+    title: "Payments P95 Latency",
+    value: "8,100ms",
+    delta: "+2,282% since Dec 1",
+    deltaPositive: false,
+    badge: "Critical",
+    badgeColor: "bg-red-100 text-red-700",
+    source: "Prometheus",
+    sourceTool: "prometheus",
+    signal:
+      "Spiked from 340ms on Dec 1. Only payments-service affected — rollback recommended.",
+  },
+  {
+    id: "dau",
+    title: "Daily Active Users",
+    value: "11,847",
+    delta: "+3.2% vs last week",
     deltaPositive: true,
-    source: 'Amplitude',
-    sourceBg: 'bg-blue-100',
-    sourceColor: 'text-blue-700',
-    chartType: 'line',
-    chartData: dauTimeSeries.slice(-30).map(d => ({ date: d.date.slice(5), value: d.value })),
-    chartKey: 'value',
-    chartColor: '#6366f1',
-    annotation: 'DAU is up 3.2% week-over-week, consistent with the Sept growth trend. No anomalies detected.',
+    source: "Amplitude",
+    sourceTool: "amplitude",
+    signal:
+      "Up 3.2% week-over-week. Consistent with Sept growth trend, no anomalies.",
   },
   {
-    id: 'signup-funnel',
-    title: 'Signup Funnel Completion',
-    value: '22.9%',
-    delta: '-15.4% vs last month',
+    id: "signup-funnel",
+    title: "Signup Funnel Completion",
+    value: "22.9%",
+    delta: "-15.4% vs last month",
     deltaPositive: false,
-    badge: 'Drop',
-    badgeColor: 'bg-red-100 text-red-700',
-    source: 'Amplitude',
-    sourceBg: 'bg-blue-100',
-    sourceColor: 'text-blue-700',
-    chartType: 'bar',
-    chartData: signupFunnelNov.map(s => ({ step: s.step.replace('Landed on /', '').slice(0, 12), count: s.count })),
-    chartKey: 'count',
-    chartColor: '#ef4444',
-    annotation: 'Step 2 (email verification) shows a 34% drop in Nov vs 8% in Oct. Root cause: commit a3f92c broke + alias email support.',
+    badge: "Drop",
+    badgeColor: "bg-red-100 text-red-700",
+    source: "Amplitude",
+    sourceTool: "amplitude",
+    signal:
+      "Email verification dropped 34% in Nov vs 8% in Oct. Root cause: broken alias email support.",
   },
   {
-    id: 'checkout',
-    title: 'Checkout Completion Rate',
-    value: '61%',
-    delta: '-17% since Dec 1',
+    id: "validation-errors",
+    title: "Validation Errors",
+    value: "2,847",
+    delta: "+9,400% since Nov 4",
     deltaPositive: false,
-    badge: 'P0',
-    badgeColor: 'bg-red-100 text-red-700',
-    source: 'Amplitude',
-    sourceBg: 'bg-blue-100',
-    sourceColor: 'text-blue-700',
-    chartType: 'area',
-    chartData: checkoutCompletionSeries.map(d => ({ date: d.date.slice(5), value: d.value })),
-    chartKey: 'value',
-    chartColor: '#ef4444',
-    annotation: 'Checkout dropped from 78% to 61% at 14:23 UTC on Dec 1 — correlates exactly with payments-service v2.4.1 deploy.',
+    badge: "Spike",
+    badgeColor: "bg-red-100 text-red-700",
+    source: "Sentry",
+    sourceTool: "sentry",
+    signal:
+      "Spiked Nov 4 after email validation regex change in commit a3f92c.",
   },
   {
-    id: 'payment-latency',
-    title: 'Payments P95 Latency',
-    value: '8,100ms',
-    delta: '+2,282% since Dec 1',
-    deltaPositive: false,
-    badge: 'Critical',
-    badgeColor: 'bg-red-100 text-red-700',
-    source: 'Prometheus',
-    sourceBg: 'bg-orange-100',
-    sourceColor: 'text-orange-600',
-    chartType: 'line',
-    chartData: latencyChartData.slice(-24),
-    chartKey: 'p95',
-    chartColor: '#f97316',
-    annotation: 'P95 latency spiked from 340ms to 8,100ms on Dec 1. Only payments-service is affected — all other services nominal. Rollback recommended.',
-  },
-  {
-    id: 'active-experiments',
-    title: 'Active Experiments',
-    value: '2 running',
-    delta: '1 significant result',
+    id: "feature-adoption",
+    title: "Feature Adoption: Advanced Filters",
+    value: "31% MAU",
+    delta: "+6% vs target",
     deltaPositive: true,
-    source: 'Amplitude',
-    sourceBg: 'bg-blue-100',
-    sourceColor: 'text-blue-700',
-    chartType: 'none',
-    chartData: [],
-    chartKey: '',
-    chartColor: '',
-    annotation: 'Homepage CTA sticky test (72% confidence) and Billing comparison table test (44% confidence) are both running.',
+    source: "Amplitude",
+    sourceTool: "amplitude",
+    signal:
+      "Exceeded 25% MAU target. Users with filters show 67% D30 retention vs 43% without — 24-point lift.",
   },
   {
-    id: 'validation-errors',
-    title: 'ValidationErrors (Sentry)',
-    value: '2,847',
-    delta: '+9,400% since Nov 4',
+    id: "homepage-conversion",
+    title: "Homepage → Signup Conversion",
+    value: "2.8%",
+    delta: "-0.3% since Oct 14",
     deltaPositive: false,
-    badge: 'Spike',
-    badgeColor: 'bg-red-100 text-red-700',
-    source: 'Sentry',
-    sourceBg: 'bg-red-100',
-    sourceColor: 'text-red-700',
-    chartType: 'bar',
-    chartData: validationErrorTimeSeries.slice(-20).map(d => ({ date: d.date.slice(5), count: d.count })),
-    chartKey: 'count',
-    chartColor: '#ef4444',
-    annotation: 'ValidationErrors spiked from near-zero to 85-115/day on Nov 4 after commit a3f92c modified email validation regex.',
+    source: "Amplitude",
+    sourceTool: "amplitude",
+    signal:
+      "Slight dip after homepage v2 launch Oct 14. Pricing section has 0 tracking events — coverage gap.",
   },
   {
-    id: 'homepage-conversion',
-    title: 'Homepage → Signup Conversion',
-    value: '2.8%',
-    delta: '-0.3% since Oct 14',
-    deltaPositive: false,
-    source: 'Amplitude',
-    sourceBg: 'bg-blue-100',
-    sourceColor: 'text-blue-700',
-    chartType: 'line',
-    chartData: homepageConversionSeries.slice(-30).map(d => ({ date: d.date.slice(5), value: d.value })),
-    chartKey: 'value',
-    chartColor: '#f59e0b',
-    annotation: 'Conversion dipped slightly after the Oct 14 homepage v2 launch. Insufficient tracking events to confirm causality — pricing section has 0 events.',
-  },
-  {
-    id: 'feature-adoption',
-    title: 'Feature Adoption: Advanced Filters',
-    value: '31% MAU',
-    delta: '+6% vs target',
+    id: "active-experiments",
+    title: "Active Experiments",
+    value: "2 running",
+    delta: "1 significant result",
     deltaPositive: true,
-    source: 'Amplitude',
-    sourceBg: 'bg-blue-100',
-    sourceColor: 'text-blue-700',
-    chartType: 'bar',
-    chartData: [
-      { label: 'D30 w/ Feature', value: 67 },
-      { label: 'D30 w/o Feature', value: 43 },
-    ],
-    chartKey: 'value',
-    chartColor: '#22c55e',
-    annotation: 'Advanced Filters exceeded the 25% MAU adoption target (31%). Users who engage with filters show 67% D30 retention vs 43% for non-users — a 24-point lift.',
+    source: "Amplitude",
+    sourceTool: "amplitude",
+    signal:
+      "Homepage CTA sticky (72% confidence) and Billing comparison table (44% confidence) both active.",
+  },
+  {
+    id: "api-error-rate",
+    title: "API Global Error Rate",
+    value: "0.42%",
+    delta: "+0.05% spike",
+    deltaPositive: false,
+    source: "Datadog",
+    sourceTool: "datadog",
+    signal:
+      "Slight elevation in /auth endpoints trace errors. Correlates with legacy provider maintenance.",
+  },
+  {
+    id: "notion-backlog",
+    title: "Strategic Dept Backlog",
+    value: "14 items",
+    delta: "+2 this week",
+    deltaPositive: null,
+    source: "Notion",
+    sourceTool: "notion",
+    signal:
+      'High-priority roadmap items added to "Q2 Core" board. Need prioritization sync.',
   },
 ];
 
-const filters = ['All', 'Critical', 'Amplitude', 'Sentry', 'Prometheus'];
-
 export default function InsightsPage() {
-  const [selectedFilter, setSelectedFilter] = useState('All');
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const router = useRouter();
+  const { setQuery } = useAgentStore();
 
-  const filteredCards = metricCards.filter(card => {
-    if (selectedFilter === 'All') return true;
-    if (selectedFilter === 'Critical') return card.badge === 'P0' || card.badge === 'Critical' || card.badge === 'Spike';
-    return card.source === selectedFilter;
-  });
+  // Customization state
+  const [activeMetricIds, setActiveMetricIds] = useState<string[]>([
+    "checkout",
+    "payment-latency",
+    "dau",
+    "signup-funnel",
+    "validation-errors",
+  ]);
+  const [pinnedId, setPinnedId] = useState<string>("checkout");
+
+  const activeMetrics = useMemo(() => {
+    return activeMetricIds
+      .map((id) => METRIC_CATALOG.find((m) => m.id === id))
+      .filter((m): m is Metric => !!m);
+  }, [activeMetricIds]);
+
+  const pinned =
+    activeMetrics.find((m) => m.id === pinnedId) ?? activeMetrics[0];
+  const secondary = activeMetrics.filter((m) => m.id !== pinnedId);
+
+  const goToAgent = (text: string) => {
+    setQuery(text);
+    router.push("/agent");
+  };
+
+  const removeMetric = (id: string) => {
+    setActiveMetricIds((prev) => prev.filter((mid) => mid !== id));
+    if (pinnedId === id) {
+      const next = activeMetricIds.find((mid) => mid !== id);
+      if (next) setPinnedId(next);
+    }
+  };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Insights</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Live metrics from all connected data sources. Updated every 2 minutes.
-        </p>
-      </div>
+      <div className="flex flex-col mb-8 gap-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Insights</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Signals from your connected sources. Pin your focus metric to
+            monitor closely.
+          </p>
+        </div>
 
-      {/* Filter bar */}
-      <div className="flex items-center gap-2 mb-6">
-        {filters.map(f => (
-          <button
-            key={f}
-            onClick={() => setSelectedFilter(f)}
-            className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              selectedFilter === f
-                ? 'bg-indigo-600 text-white'
-                : 'bg-white border border-zinc-200 text-slate-600 hover:bg-slate-50'
-            )}
-          >
-            {f}
-          </button>
-        ))}
+        {/* Omni-search / Command Palette */}
+        <div className="relative group shadow-sm hover:shadow-md transition-shadow rounded-2xl">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Sparkles className="h-5 w-5 text-indigo-400 group-focus-within:text-indigo-600 transition-colors" />
+          </div>
+          <input
+            type="text"
+            placeholder="Ask agent to analyze insights or validate a hypothesis... (Cmd+K)"
+            className="w-full pl-12 pr-4 py-4 bg-white border border-zinc-200 rounded-2xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium placeholder-slate-400"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                goToAgent(e.currentTarget.value.trim());
+              }
+            }}
+          />
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+            <div className="hidden sm:flex items-center gap-1.5 opacity-50">
+              <kbd className="px-2 py-1 bg-slate-100 rounded text-[10px] font-mono font-bold text-slate-500">
+                ⌘
+              </kbd>
+              <kbd className="px-2 py-1 bg-slate-100 rounded text-[10px] font-mono font-bold text-slate-500">
+                K
+              </kbd>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Metric cards grid */}
-      <div className="grid grid-cols-3 gap-4">
-        {filteredCards.map((card, i) => {
-          const isExpanded = expandedCard === card.id;
-          return (
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-3 space-y-4">
+          {/* Pinned focus metric */}
+          {pinned && (
             <motion.div
-              key={card.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className={cn(
-                'bg-white rounded-xl border border-zinc-200 shadow-sm hover:shadow-md transition-all cursor-pointer',
-                isExpanded && 'col-span-2'
-              )}
-              onClick={() => setExpandedCard(isExpanded ? null : card.id)}
+              key={pinned.id}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 relative group"
             >
-              <div className="p-5">
-                {/* Header row */}
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">{card.title}</p>
-                    <p className="text-2xl font-bold text-slate-900 mt-0.5">{card.value}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {card.badge && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${card.badgeColor}`}>
-                        {card.badge}
-                      </span>
-                    )}
-                    <ChevronDown className={cn('w-4 h-4 text-slate-400 transition-transform', isExpanded && 'rotate-180')} />
-                  </div>
-                </div>
-
-                {/* Delta */}
-                <div className="flex items-center gap-1 mb-3">
-                  {card.deltaPositive === true && <TrendingUp className="w-3.5 h-3.5 text-green-500" />}
-                  {card.deltaPositive === false && <TrendingDown className="w-3.5 h-3.5 text-red-500" />}
-                  <span className={cn(
-                    'text-xs font-medium',
-                    card.deltaPositive === true ? 'text-green-600' :
-                    card.deltaPositive === false ? 'text-red-600' : 'text-slate-500'
-                  )}>
-                    {card.delta}
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  <span className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide">
+                    Focus
                   </span>
                 </div>
-
-                {/* Chart */}
-                {card.chartType !== 'none' && card.chartData.length > 0 && (
-                  <div className="h-[120px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      {card.chartType === 'line' ? (
-                        <LineChart data={card.chartData}>
-                          <Line type="monotone" dataKey={card.chartKey} stroke={card.chartColor} strokeWidth={2} dot={false} />
-                          <Tooltip contentStyle={{ fontSize: '11px', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-                        </LineChart>
-                      ) : card.chartType === 'area' ? (
-                        <AreaChart data={card.chartData}>
-                          <defs>
-                            <linearGradient id={`grad-${card.id}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={card.chartColor} stopOpacity={0.15} />
-                              <stop offset="95%" stopColor={card.chartColor} stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <Area type="monotone" dataKey={card.chartKey} stroke={card.chartColor} strokeWidth={2} fill={`url(#grad-${card.id})`} dot={false} />
-                          <Tooltip contentStyle={{ fontSize: '11px', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-                        </AreaChart>
-                      ) : (
-                        <BarChart data={card.chartData}>
-                          <Bar dataKey={card.chartKey} fill={card.chartColor} radius={[2, 2, 0, 0]} />
-                          <Tooltip contentStyle={{ fontSize: '11px', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-                        </BarChart>
-                      )}
-                    </ResponsiveContainer>
-                  </div>
-                )}
-
-                {card.chartType === 'none' && (
-                  <div className="h-[120px] flex items-center justify-center bg-slate-50 rounded-lg">
-                    <p className="text-xs text-slate-400">No chart available</p>
-                  </div>
-                )}
-
-                {/* Expanded annotation */}
-                {isExpanded && card.annotation && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="mt-3 pt-3 border-t border-slate-100"
-                  >
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-3.5 h-3.5 text-indigo-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-xs text-slate-600 leading-relaxed">{card.annotation}</p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${card.sourceBg} ${card.sourceColor}`}>
-                    {card.source}
-                  </span>
-                  <button
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-[10px] text-slate-400 hover:text-indigo-600 flex items-center gap-1 transition-colors"
-                  >
-                    Open in {card.source}
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </button>
+                <div
+                  className="flex items-center gap-2 group/link cursor-pointer"
+                  title={`View in ${pinned.source}`}
+                >
+                  <ToolLogo tool={pinned.sourceTool} size="sm" />
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100" />
                 </div>
               </div>
+
+              <h2 className="text-base font-medium text-slate-700 mt-1">
+                {pinned.title}
+              </h2>
+              <div className="flex items-baseline gap-4 mt-3">
+                <p className="text-5xl font-bold text-slate-900 tracking-tight">
+                  {pinned.value}
+                </p>
+                <div className="flex items-center gap-1.5 mb-1">
+                  {pinned.deltaPositive === true && (
+                    <TrendingUp className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  )}
+                  {pinned.deltaPositive === false && (
+                    <TrendingDown className="w-4 h-4 text-red-500 flex-shrink-0" />
+                  )}
+                  <span
+                    className={cn(
+                      "text-sm font-semibold",
+                      pinned.deltaPositive === true
+                        ? "text-green-600"
+                        : pinned.deltaPositive === false
+                          ? "text-red-600"
+                          : "text-slate-500",
+                    )}
+                  >
+                    {pinned.delta}
+                  </span>
+                  {pinned.badge && (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-1 ${pinned.badgeColor}`}
+                    >
+                      {pinned.badge}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-5 flex items-start gap-3">
+                <div className="mt-1 flex-shrink-0">
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                    {pinned.signal}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-start mt-5 pt-5 border-t border-zinc-100">
+                <button
+                  onClick={() =>
+                    goToAgent(
+                      `Tell me more about ${pinned.title}: ${pinned.signal}`,
+                    )
+                  }
+                  className="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Ask agent about this metric
+                </button>
+              </div>
             </motion.div>
-          );
-        })}
+          )}
+
+          {/* Secondary metrics — compact list */}
+          <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden transition-all">
+            <div className="divide-y divide-zinc-50">
+              <AnimatePresence initial={false}>
+                {secondary.map((m) => (
+                  <motion.div
+                    key={m.id}
+                    layout
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="px-5 py-3 flex items-center gap-4 hover:bg-slate-50/80 transition-colors group relative"
+                  >
+                    <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => removeMetric(m.id)}
+                        className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                        title="Remove metric"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setPinnedId(m.id)}
+                        className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all"
+                        title="Set as focus metric"
+                      >
+                        <Pin className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Title + signal */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-800 truncate">
+                          {m.title}
+                        </p>
+                        {m.badge && (
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${m.badgeColor} flex-shrink-0 leading-none`}
+                          >
+                            {m.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 truncate mt-0.5">
+                        {m.signal}
+                      </p>
+                    </div>
+
+                    {/* Value + delta */}
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-bold text-slate-900 leading-none">
+                        {m.value}
+                      </p>
+                      <div className="flex items-center justify-end gap-1 mt-1.5">
+                        {m.deltaPositive === true && (
+                          <TrendingUp className="w-3 h-3 text-green-500" />
+                        )}
+                        {m.deltaPositive === false && (
+                          <TrendingDown className="w-3 h-3 text-red-500" />
+                        )}
+                        <span
+                          className={cn(
+                            "text-[11px] font-medium leading-none",
+                            m.deltaPositive === true
+                              ? "text-green-600"
+                              : m.deltaPositive === false
+                                ? "text-red-500"
+                                : "text-slate-400",
+                          )}
+                        >
+                          {m.delta}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Source Tool Logo */}
+                    <div className="ml-2 flex-shrink-0">
+                      <ToolLogo tool={m.sourceTool} size="sm" />
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
