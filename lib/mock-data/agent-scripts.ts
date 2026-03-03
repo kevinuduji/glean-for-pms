@@ -310,12 +310,12 @@ Strong prior across three similar tests. Confidence in 15% target lift: **high**
 ];
 
 export const quickQueryPills = [
-  { id: 'pill-1', tool: 'amplitude', label: 'Signup drop', scriptId: 'script-1' },
-  { id: 'pill-2', tool: 'posthog', label: 'Homepage impact', scriptId: 'script-2' },
-  { id: 'pill-3', tool: 'amplitude', label: 'Onboarding test', scriptId: 'script-3' },
-  { id: 'pill-4', tool: 'github', label: 'Feature X impact', scriptId: 'script-4' },
-  { id: 'pill-5', tool: 'sentry', label: 'Checkout issues', scriptId: 'script-5' },
-  { id: 'pill-6', tool: 'posthog', label: 'Troubled sessions', scriptId: 'script-6' },
-  { id: 'pill-7', tool: 'agent', label: 'Roadmap ideas', scriptId: 'script-7' },
-  { id: 'pill-8', tool: 'amplitude', label: 'Metric modeling', scriptId: 'script-8' },
+  { id: 'pill-1', tool: 'amplitude', label: 'Why are signups down 15% this month?', scriptId: 'script-1' },
+  { id: 'pill-2', tool: 'posthog', label: 'Did our new homepage help?', scriptId: 'script-2' },
+  { id: 'pill-3', tool: 'amplitude', label: 'How do I set up an A/B test for our onboarding flow?', scriptId: 'script-3' },
+  { id: 'pill-4', tool: 'github', label: 'Was Feature X worth shipping?', scriptId: 'script-4' },
+  { id: 'pill-5', tool: 'sentry', label: 'Is checkout broken — product or infra?', scriptId: 'script-5' },
+  { id: 'pill-6', tool: 'posthog', label: 'Which sessions show users hitting problems?', scriptId: 'script-6' },
+  { id: 'pill-7', tool: 'agent', label: 'What should I build next?', scriptId: 'script-7' },
+  { id: 'pill-8', tool: 'amplitude', label: 'What metric will Feature Y move?', scriptId: 'script-8' },
 ];

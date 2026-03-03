@@ -967,9 +967,9 @@ export default function SessionsPage() {
       <div className="p-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-slate-900">Session Triage</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">Sessions</h1>
           <p className="text-slate-500 text-sm mt-1">
-            AI-flagged friction points — review each session and turn it into action.
+            Flagged friction points — review each session and turn it into action.
           </p>
           {/* Triage status strip */}
           <div className="flex items-center gap-4 mt-3">
