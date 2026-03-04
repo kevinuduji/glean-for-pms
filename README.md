@@ -2,9 +2,52 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### Option 1: Using Docker (Recommended)
+
+This project is configured to run in a Docker container with hot-reload capabilities. You don't need to install Node.js or npm locally.
+
+**Prerequisites:**
+- Docker
+- Docker Compose
+
+**Steps:**
+1. Clone the repository
+2. Navigate to the project directory
+3. Build and start the container:
 
 ```bash
+docker-compose up --build
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000).
+
+**Key Features:**
+- ✅ No need to install dependencies locally
+- ✅ Hot-reload enabled (changes reflect immediately)
+- ✅ Consistent development environment
+- ✅ Easy setup and teardown
+
+**Useful Docker Commands:**
+```bash
+# Start the container in detached mode
+docker-compose up -d
+
+# Stop the container
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Rebuild the container (after dependency changes)
+docker-compose up --build
+```
+
+### Option 2: Local Development
+
+If you prefer to run the project locally:
+
+```bash
+npm install
 npm run dev
 # or
 yarn dev
