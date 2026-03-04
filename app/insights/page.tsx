@@ -153,15 +153,10 @@ export default function InsightsPage() {
   const router = useRouter();
   const { setQuery } = useAgentStore();
 
-  // Customization state
-  const [activeMetricIds, setActiveMetricIds] = useState<string[]>([
-    "checkout",
-    "payment-latency",
-    "dau",
-    "signup-funnel",
-    "validation-errors",
-  ]);
-  const [pinnedId, setPinnedId] = useState<string>("checkout");
+  const [activeMetricIds, setActiveMetricIds] = useState<string[]>(
+    METRIC_CATALOG.map((m) => m.id),
+  );
+  const [pinnedIds, setPinnedIds] = useState<string[]>(["checkout"]);
 
   const activeMetrics = useMemo(() => {
     return activeMetricIds
@@ -169,22 +164,49 @@ export default function InsightsPage() {
       .filter((m): m is Metric => !!m);
   }, [activeMetricIds]);
 
-  const pinned =
-    activeMetrics.find((m) => m.id === pinnedId) ?? activeMetrics[0];
-  const secondary = activeMetrics.filter((m) => m.id !== pinnedId);
+  const pinnedMetrics = useMemo(
+    () =>
+      pinnedIds
+        .map((id) => METRIC_CATALOG.find((m) => m.id === id))
+        .filter((m): m is Metric => !!m),
+    [pinnedIds],
+  );
+
+  const secondary = activeMetrics.filter((m) => !pinnedIds.includes(m.id));
 
   const goToAgent = (text: string) => {
     setQuery(text);
     router.push("/agent");
   };
 
+  const togglePin = (id: string) => {
+    setPinnedIds((prev) => {
+      if (prev.includes(id)) {
+        // Unpin — but always keep at least 1 pin
+        if (prev.length === 1) return prev;
+        return prev.filter((p) => p !== id);
+      }
+      if (prev.length >= 3) {
+        // Replace oldest pin
+        return [...prev.slice(1), id];
+      }
+      return [...prev, id];
+    });
+  };
+
   const removeMetric = (id: string) => {
     setActiveMetricIds((prev) => prev.filter((mid) => mid !== id));
-    if (pinnedId === id) {
-      const next = activeMetricIds.find((mid) => mid !== id);
-      if (next) setPinnedId(next);
-    }
+    setPinnedIds((prev) => {
+      const next = prev.filter((p) => p !== id);
+      if (next.length === 0) {
+        const fallback = activeMetricIds.find((mid) => mid !== id);
+        return fallback ? [fallback] : [];
+      }
+      return next;
+    });
   };
+
+  const count = pinnedMetrics.length;
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -193,7 +215,7 @@ export default function InsightsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Insights</h1>
           <p className="text-slate-500 text-sm mt-1">
-            Signals from your connected connectors. Pin your focus metric to
+            Signals from your connected connectors. Pin up to 3 focus metrics to
             monitor closely.
           </p>
         </div>
@@ -225,179 +247,249 @@ export default function InsightsPage() {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-3 space-y-4">
-          {/* Pinned focus metric */}
-          {pinned && (
-            <motion.div
-              key={pinned.id}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6 relative group"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                  <span className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide">
-                    Focus
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-2 group/link cursor-pointer"
-                  title={`View in ${pinned.source}`}
-                >
-                  <ToolLogo tool={pinned.sourceTool} size="sm" />
-                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100" />
-                </div>
-              </div>
 
-              <h2 className="text-base font-medium text-slate-700 mt-1">
-                {pinned.title}
-              </h2>
-              <div className="flex items-baseline gap-4 mt-3">
-                <p className="text-5xl font-bold text-slate-900 tracking-tight">
-                  {pinned.value}
-                </p>
-                <div className="flex items-center gap-1.5 mb-1">
-                  {pinned.deltaPositive === true && (
-                    <TrendingUp className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  )}
-                  {pinned.deltaPositive === false && (
-                    <TrendingDown className="w-4 h-4 text-red-500 flex-shrink-0" />
-                  )}
-                  <span
+      <div className="space-y-4">
+        {/* Pinned focus metrics */}
+        {pinnedMetrics.length > 0 && (
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              layout
+              className="flex gap-4 justify-center items-stretch"
+            >
+              {pinnedMetrics.map((pinned) => (
+                <motion.div
+                  key={pinned.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm relative group flex flex-col"
+                  style={{ minWidth: 0 }}
+                >
+                  {/* Top row */}
+                  <div className="flex items-center justify-between px-6 pt-6 pb-0">
+                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      <span className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wide">
+                        Focus
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="flex items-center gap-1.5 cursor-pointer group/link"
+                        title={`View in ${pinned.source}`}
+                      >
+                        <ToolLogo tool={pinned.sourceTool} size="sm" />
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/link:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100" />
+                      </div>
+                      {count > 1 && (
+                        <button
+                          onClick={() => togglePin(pinned.id)}
+                          className="p-1 rounded-lg text-indigo-400 hover:text-red-400 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                          title="Unpin metric"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content — center-aligned when multiple pins */}
+                  <div
                     className={cn(
-                      "text-sm font-semibold",
-                      pinned.deltaPositive === true
-                        ? "text-green-600"
-                        : pinned.deltaPositive === false
-                          ? "text-red-600"
-                          : "text-slate-500",
+                      "flex-1 px-6 pt-3 pb-5 flex flex-col",
+                      count >= 2 ? "items-center text-center" : "items-start",
                     )}
                   >
-                    {pinned.delta}
-                  </span>
-                  {pinned.badge && (
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-1 ${pinned.badgeColor}`}
+                    <h2 className="text-base font-medium text-slate-700">
+                      {pinned.title}
+                    </h2>
+                    <div
+                      className={cn(
+                        "flex items-baseline gap-3 mt-3",
+                        count >= 2 ? "flex-col items-center gap-1" : "",
+                      )}
                     >
-                      {pinned.badge}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-start gap-3">
-                <div className="mt-1 flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-700 leading-relaxed font-medium">
-                    {pinned.signal}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-start mt-5 pt-5 border-t border-zinc-100">
-                <button
-                  onClick={() =>
-                    goToAgent(
-                      `Tell me more about ${pinned.title}: ${pinned.signal}`,
-                    )
-                  }
-                  className="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Ask agent about this metric
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Secondary metrics — compact list */}
-          <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden transition-all">
-            <div className="divide-y divide-zinc-50">
-              <AnimatePresence initial={false}>
-                {secondary.map((m) => (
-                  <motion.div
-                    key={m.id}
-                    layout
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="px-5 py-3 flex items-center gap-4 hover:bg-slate-50/80 transition-colors group relative"
-                  >
-                    <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => removeMetric(m.id)}
-                        className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
-                        title="Remove metric"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setPinnedId(m.id)}
-                        className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all"
-                        title="Set as focus metric"
-                      >
-                        <Pin className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Title + signal */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-slate-800 truncate">
-                          {m.title}
-                        </p>
-                        {m.badge && (
-                          <span
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${m.badgeColor} flex-shrink-0 leading-none`}
-                          >
-                            {m.badge}
-                          </span>
+                      <p
+                        className={cn(
+                          "font-bold text-slate-900 tracking-tight",
+                          count === 1 ? "text-5xl" : count === 2 ? "text-4xl" : "text-3xl",
                         )}
-                      </div>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {m.signal}
+                      >
+                        {pinned.value}
                       </p>
-                    </div>
-
-                    {/* Value + delta */}
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold text-slate-900 leading-none">
-                        {m.value}
-                      </p>
-                      <div className="flex items-center justify-end gap-1 mt-1.5">
-                        {m.deltaPositive === true && (
-                          <TrendingUp className="w-3 h-3 text-green-500" />
+                      <div
+                        className={cn(
+                          "flex items-center gap-1.5",
+                          count >= 2 ? "justify-center" : "mb-1",
                         )}
-                        {m.deltaPositive === false && (
-                          <TrendingDown className="w-3 h-3 text-red-500" />
+                      >
+                        {pinned.deltaPositive === true && (
+                          <TrendingUp className="w-4 h-4 text-green-500 flex-shrink-0" />
+                        )}
+                        {pinned.deltaPositive === false && (
+                          <TrendingDown className="w-4 h-4 text-red-500 flex-shrink-0" />
                         )}
                         <span
                           className={cn(
-                            "text-[11px] font-medium leading-none",
-                            m.deltaPositive === true
+                            "text-sm font-semibold",
+                            pinned.deltaPositive === true
                               ? "text-green-600"
-                              : m.deltaPositive === false
-                                ? "text-red-500"
-                                : "text-slate-400",
+                              : pinned.deltaPositive === false
+                                ? "text-red-600"
+                                : "text-slate-500",
                           )}
                         >
-                          {m.delta}
+                          {pinned.delta}
                         </span>
+                        {pinned.badge && (
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-1 ${pinned.badgeColor}`}
+                          >
+                            {pinned.badge}
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {/* Source Tool Logo */}
-                    <div className="ml-2 flex-shrink-0">
-                      <ToolLogo tool={m.sourceTool} size="sm" />
+                    <div
+                      className={cn(
+                        "mt-4 flex items-start gap-3",
+                        count >= 2 ? "justify-center" : "",
+                      )}
+                    >
+                      <div className="mt-0.5 flex-shrink-0">
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                      </div>
+                      <p
+                        className={cn(
+                          "text-sm text-slate-700 leading-relaxed font-medium",
+                          count === 3 ? "line-clamp-2" : count === 2 ? "line-clamp-3" : "",
+                        )}
+                      >
+                        {pinned.signal}
+                      </p>
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div
+                    className={cn(
+                      "flex items-center px-6 pt-4 pb-5 border-t border-zinc-100",
+                      count >= 2 ? "justify-center" : "justify-start",
+                    )}
+                  >
+                    <button
+                      onClick={() =>
+                        goToAgent(
+                          `Tell me more about ${pinned.title}: ${pinned.signal}`,
+                        )
+                      }
+                      className="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Ask agent about this metric
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* Secondary metrics — compact list */}
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="divide-y divide-zinc-50">
+            <AnimatePresence initial={false}>
+              {secondary.map((m) => (
+                <motion.div
+                  key={m.id}
+                  layout
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="px-5 py-3 flex items-center gap-4 hover:bg-slate-50/80 transition-colors group relative"
+                >
+                  <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => removeMetric(m.id)}
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                      title="Remove metric"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => togglePin(m.id)}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-all",
+                        pinnedIds.includes(m.id)
+                          ? "text-indigo-500 bg-indigo-50"
+                          : "text-slate-300 hover:text-indigo-500 hover:bg-indigo-50",
+                      )}
+                      title={
+                        pinnedIds.length >= 3
+                          ? "Replace oldest pin"
+                          : "Pin as focus metric"
+                      }
+                    >
+                      <Pin className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Title + signal */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-800 truncate">
+                        {m.title}
+                      </p>
+                      {m.badge && (
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${m.badgeColor} flex-shrink-0 leading-none`}
+                        >
+                          {m.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 truncate mt-0.5">
+                      {m.signal}
+                    </p>
+                  </div>
+
+                  {/* Value + delta */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-bold text-slate-900 leading-none">
+                      {m.value}
+                    </p>
+                    <div className="flex items-center justify-end gap-1 mt-1.5">
+                      {m.deltaPositive === true && (
+                        <TrendingUp className="w-3 h-3 text-green-500" />
+                      )}
+                      {m.deltaPositive === false && (
+                        <TrendingDown className="w-3 h-3 text-red-500" />
+                      )}
+                      <span
+                        className={cn(
+                          "text-[11px] font-medium leading-none",
+                          m.deltaPositive === true
+                            ? "text-green-600"
+                            : m.deltaPositive === false
+                              ? "text-red-500"
+                              : "text-slate-400",
+                        )}
+                      >
+                        {m.delta}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Source Tool Logo */}
+                  <div className="ml-2 flex-shrink-0">
+                    <ToolLogo tool={m.sourceTool} size="sm" />
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       </div>
