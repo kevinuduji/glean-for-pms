@@ -12,6 +12,8 @@ import {
   Search,
   PanelLeftClose,
   PanelLeftOpen,
+  GitMerge,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -21,6 +23,8 @@ const navItems = [
   { href: "/experiments", label: "Experiments", icon: FlaskConical },
   { href: "/sessions", label: "Sessions", icon: Play },
   { href: "/insights", label: "Insight", icon: BarChart3 },
+  { href: "/retrospective", label: "Retrospective", icon: GitMerge },
+  { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
 ];
 
 const bottomNavItems = [
