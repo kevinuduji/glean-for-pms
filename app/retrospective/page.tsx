@@ -593,23 +593,6 @@ function RetroReport({ feature }: { feature: RetroFeature }) {
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
-function EmptyState() {
-  return (
-    <div className="h-full flex flex-col items-center justify-center text-center px-8 py-24">
-      <div className="w-16 h-16 rounded-3xl bg-white shadow-xl flex items-center justify-center mb-6 border border-slate-100">
-        <Sparkles className="w-8 h-8 text-indigo-500 animate-pulse" />
-      </div>
-      <h3 className="text-slate-900 font-bold text-lg mb-2">
-        Select a shipped feature
-      </h3>
-      <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
-        Probe AI will automatically evaluate whether the feature met its goals
-        and surface lessons for your next build.
-      </p>
-    </div>
-  );
-}
-
 // ─── No Results State ─────────────────────────────────────────────────────────
 
 function NoResults({ onClear }: { onClear: () => void }) {
@@ -642,10 +625,14 @@ export default function RetrospectivePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [verdictFilter, setVerdictFilter] = useState<"all" | Verdict>("all");
   const [teamFilter, setTeamFilter] = useState("All");
-  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "name" | "verdict">("date-desc");
+  const [sortBy, setSortBy] = useState<
+    "date-desc" | "date-asc" | "name" | "verdict"
+  >("date-desc");
 
   const teams = useMemo(() => {
-    const t = Array.from(new Set(retroFeatures.map((f) => f.owningTeam))).sort();
+    const t = Array.from(
+      new Set(retroFeatures.map((f) => f.owningTeam)),
+    ).sort();
     return ["All", ...t];
   }, []);
 
@@ -710,9 +697,16 @@ export default function RetrospectivePage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-full bg-slate-50 overflow-hidden">
+    <div className="flex h-full bg-slate-50 overflow-hidden">
       {/* Left panel — Feature selector */}
-      <div className="w-full md:w-80 flex-shrink-0 border-b md:border-b-0 md:border-r border-slate-200 bg-white overflow-y-auto flex flex-col">
+      <div
+        className={cn(
+          "flex-shrink-0 border-slate-200 bg-white overflow-y-auto flex flex-col transition-all duration-500 ease-in-out z-10",
+          selectedFeature
+            ? "w-full md:w-80 border-b md:border-b-0 md:border-r"
+            : "w-full",
+        )}
+      >
         {/* Header + controls — sticky */}
         <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-4 pt-5 pb-4 space-y-3">
           <div>
@@ -746,9 +740,7 @@ export default function RetrospectivePage() {
             </select>
             <select
               value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as typeof sortBy)
-              }
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
               className="flex-1 min-w-0 text-xs bg-white border border-slate-200 text-slate-600 rounded-lg px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-indigo-300 cursor-pointer"
             >
               <option value="date-desc">Newest first</option>
@@ -768,6 +760,7 @@ export default function RetrospectivePage() {
               <button
                 onClick={clearAllFilters}
                 className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+                id="clear-filters-btn"
               >
                 Clear filters
               </button>
@@ -776,7 +769,14 @@ export default function RetrospectivePage() {
         </div>
 
         {/* Feature list */}
-        <div className="flex-1 p-4 space-y-3">
+        <div
+          className={cn(
+            "flex-1 p-4 transition-all duration-300",
+            selectedFeature
+              ? "space-y-3"
+              : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
+          )}
+        >
           {filteredAndSorted.length === 0 ? (
             <NoResults onClear={clearAllFilters} />
           ) : (
@@ -793,48 +793,52 @@ export default function RetrospectivePage() {
       </div>
 
       {/* Right panel — Report */}
-      <div className="flex-1 overflow-y-auto">
-        <AnimatePresence mode="wait">
-          {!selectedFeature ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="h-full"
+      {selectedFeature && (
+        <div className="flex-1 overflow-y-auto bg-slate-50 relative scroll-smooth">
+          <div className="sticky top-0 z-30 flex justify-end p-6 pointer-events-none">
+            <button
+              onClick={() => setSelectedId(null)}
+              className="p-2 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 shadow-sm transition-all group pointer-events-auto"
+              title="Close report and expand list"
+              id="close-report-btn"
             >
-              <EmptyState />
-            </motion.div>
-          ) : isLoading ? (
-            <motion.div
-              key={`loading-${selectedId}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="p-8"
-            >
-              <div className="flex items-center gap-2 mb-6 text-sm text-slate-400">
-                <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-                Generating retrospective…
-              </div>
-              <ReportSkeleton />
-            </motion.div>
-          ) : (
-            <motion.div
-              key={selectedId}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="p-8 max-w-3xl"
-            >
-              <RetroReport feature={selectedFeature} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              <X className="w-5 h-5 transition-transform group-hover:rotate-90" />
+            </button>
+          </div>
+
+          <div className="-mt-16">
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <motion.div
+                  key={`loading-${selectedId}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="p-8 pt-0"
+                >
+                  <div className="flex items-center gap-2 mb-6 text-sm text-slate-400">
+                    <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
+                    Generating retrospective…
+                  </div>
+                  <ReportSkeleton />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={selectedId}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="p-8 pt-0 max-w-4xl mx-auto"
+                >
+                  <RetroReport feature={selectedFeature} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
