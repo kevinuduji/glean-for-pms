@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   TrendingUp,
   Send,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -1471,11 +1472,239 @@ function RightAgentPanel({
   );
 }
 
+// ─── ExperimentBrowseCard ─────────────────────────────────────────────────────
+
+function ExperimentBrowseCard({
+  experiment,
+  onSelect,
+}: {
+  experiment: Experiment;
+  onSelect: (exp: Experiment) => void;
+}) {
+  const status = statusConfig[experiment.status];
+  const StatusIcon = status.icon;
+
+  return (
+    <button
+      onClick={() => onSelect(experiment)}
+      className="w-full text-left bg-white border border-slate-200 rounded-xl p-5 hover:border-indigo-200 hover:shadow-md transition-all duration-150 group flex flex-col"
+    >
+      {/* Status + area */}
+      <div className="flex items-center justify-between mb-3">
+        <span
+          className={cn(
+            "flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full",
+            status.color,
+          )}
+        >
+          <StatusIcon className="w-3 h-3" />
+          {status.label}
+        </span>
+        <span
+          className={cn(
+            "text-xs font-medium px-2 py-0.5 rounded-full border",
+            areaColors[experiment.area],
+          )}
+        >
+          {experiment.area}
+        </span>
+      </div>
+
+      {/* Name */}
+      <h3 className="text-sm font-semibold text-slate-900 mb-2 group-hover:text-indigo-700 transition-colors leading-snug">
+        {experiment.name}
+      </h3>
+
+      {/* Hypothesis */}
+      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-4 flex-1">
+        {experiment.hypothesis}
+      </p>
+
+      {/* Lift stats */}
+      {experiment.currentLift !== undefined && (
+        <div className="flex items-center gap-5 mb-3">
+          <div>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+              Lift
+            </p>
+            <p
+              className={cn(
+                "text-sm font-bold",
+                experiment.currentLift >= experiment.targetLift
+                  ? "text-green-600"
+                  : "text-slate-700",
+              )}
+            >
+              +{experiment.currentLift}%
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">
+              Target
+            </p>
+            <p className="text-sm font-bold text-slate-400">
+              +{experiment.targetLift}%
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Confidence bar */}
+      {experiment.confidence !== undefined && (
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-slate-400">Confidence</span>
+            <span
+              className={cn(
+                "text-[10px] font-bold",
+                experiment.confidence >= 95
+                  ? "text-green-600"
+                  : experiment.confidence >= 80
+                    ? "text-amber-600"
+                    : "text-slate-500",
+              )}
+            >
+              {experiment.confidence}%
+            </span>
+          </div>
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full",
+                experiment.confidence >= 95
+                  ? "bg-green-500"
+                  : experiment.confidence >= 80
+                    ? "bg-amber-400"
+                    : "bg-blue-400",
+              )}
+              style={{ width: `${experiment.confidence}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <span className="text-[10px] font-mono text-slate-500 bg-slate-50 px-2 py-0.5 rounded">
+          {experiment.primaryMetric}
+        </span>
+        <span className="text-[10px] text-slate-400">{experiment.createdBy}</span>
+      </div>
+    </button>
+  );
+}
+
+// ─── ExperimentBrowseView ─────────────────────────────────────────────────────
+
+function ExperimentBrowseView({
+  experiments: exps,
+  allCount,
+  search,
+  filter,
+  onSearch,
+  onFilter,
+  onSelect,
+  onScaffold,
+}: {
+  experiments: Experiment[];
+  allCount: number;
+  search: string;
+  filter: FilterStatus;
+  onSearch: (v: string) => void;
+  onFilter: (v: FilterStatus) => void;
+  onSelect: (exp: Experiment) => void;
+  onScaffold: () => void;
+}) {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden bg-white h-full">
+      {/* Header */}
+      <div className="px-8 py-6 border-b border-slate-100 flex-shrink-0">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Experiments
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {allCount} experiments tracked
+            </p>
+          </div>
+          <button
+            onClick={onScaffold}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add experiment
+          </button>
+        </div>
+
+        {/* Search + filter row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative w-72">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => onSearch(e.target.value)}
+              placeholder="Search experiments…"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder-slate-400"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            {(
+              [
+                "all",
+                "running",
+                "significant",
+                "inconclusive",
+                "draft",
+              ] as FilterStatus[]
+            ).map((f) => (
+              <button
+                key={f}
+                onClick={() => onFilter(f)}
+                className={cn(
+                  "px-2.5 py-1 text-[11px] font-semibold rounded-full transition-all capitalize",
+                  filter === f
+                    ? "bg-slate-800 text-white"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                )}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Card grid */}
+      <div className="flex-1 overflow-y-auto p-8">
+        {exps.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Search className="w-10 h-10 text-slate-200 mb-4" />
+            <p className="text-sm font-semibold text-slate-500">
+              No experiments match
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              Try adjusting your search or filters.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {exps.map((exp) => (
+              <ExperimentBrowseCard key={exp.id} experiment={exp} onSelect={onSelect} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ExperimentsPage() {
   const [mode, setMode] = useState<Mode>("archive");
-  const [selected, setSelected] = useState<Experiment>(experiments[2]); // Default to one with data
+  const [selected, setSelected] = useState<Experiment | null>(null);
   const [agentPanelOpen, setAgentPanelOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterStatus>("all");
@@ -1525,6 +1754,14 @@ export default function ExperimentsPage() {
   const runningExperiments = allExperiments.filter(
     (e) => e.status === "running",
   );
+
+  // Full browse mode: archive tab + no card selected
+  const isBrowseMode = mode === "archive" && selected === null;
+
+  const handleCloseDetail = useCallback(() => {
+    setSelected(null);
+    setMode("archive");
+  }, []);
 
   const handleSaveScaffold = (hypothesis: string) => {
     const newExp: (typeof experiments)[0] = {
@@ -1583,204 +1820,254 @@ export default function ExperimentsPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* ── Left Panel: Sources / Experiments ────────────────────────────────── */}
-      <div className="w-72 border-r border-slate-200 bg-white flex flex-col flex-shrink-0">
-        <div className="p-4 border-b border-slate-100">
-          <h1 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
-            Experiments
-          </h1>
-          <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">
-            {allExperiments.length} Sources Connected
-          </p>
-        </div>
-
-        <div className="px-3 py-3 border-b border-slate-100">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search experiments..."
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+      {/* ── Browse / Sidebar+Detail Layout (animated) ──────────────────────── */}
+      <AnimatePresence mode="wait" initial={false}>
+        {isBrowseMode ? (
+          /* Full browse view — no sidebar, card grid fills the space */
+          <motion.div
+            key="browse-layout"
+            className="flex-1 overflow-hidden flex"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <ExperimentBrowseView
+              experiments={filteredExperiments}
+              allCount={allExperiments.length}
+              search={search}
+              filter={filter}
+              onSearch={setSearch}
+              onFilter={setFilter}
+              onSelect={(exp) => {
+                setSelected(exp);
+                setMode("archive");
+              }}
+              onScaffold={() => setMode("scaffold")}
             />
-          </div>
+          </motion.div>
+        ) : (
+          /* Sidebar + detail / live / decisions / scaffold */
+          <motion.div
+            key="detail-layout"
+            className="flex-1 flex overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            {/* ── Left Panel: Sources / Experiments ──────────────────────── */}
+            <div className="w-72 border-r border-slate-200 bg-white flex flex-col flex-shrink-0">
+              <div className="p-4 border-b border-slate-100">
+                <h1 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                  Experiments
+                </h1>
+                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">
+                  {allExperiments.length} Sources Connected
+                </p>
+              </div>
 
-          <div className="flex flex-wrap gap-1 mt-2">
-            {(["all", "running", "significant"] as FilterStatus[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "px-2 py-0.5 text-[9px] font-bold rounded-full transition-all uppercase tracking-tighter",
-                  filter === f
-                    ? "bg-slate-800 text-white"
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200",
-                )}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Unified Experiment List */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="px-4 py-3">
-            <button
-              onClick={() => setMode("scaffold")}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-all mb-4"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add experiment
-            </button>
-
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3">
-              All Experiments
-            </p>
-            <div className="space-y-0.5 -mx-4">
-              {filteredExperiments.map((exp) => (
-                <button
-                  key={exp.id}
-                  onClick={() => {
-                    setSelected(exp);
-                    setMode("archive");
-                  }}
-                  className={cn(
-                    "w-full text-left px-4 py-2.5 flex items-start gap-3 transition-colors group",
-                    selected.id === exp.id && mode === "archive"
-                      ? "bg-indigo-50/50 border-r-2 border-indigo-600"
-                      : "hover:bg-slate-50",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "mt-1 w-2 h-2 rounded-full flex-shrink-0",
-                      statusConfig[exp.status].dot,
-                    )}
+              <div className="px-3 py-3 border-b border-slate-100">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search experiments..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
                   />
-                  <div className="flex-1 min-w-0">
-                    <p
+                </div>
+
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {(["all", "running", "significant"] as FilterStatus[]).map(
+                    (f) => (
+                      <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className={cn(
+                          "px-2 py-0.5 text-[9px] font-bold rounded-full transition-all uppercase tracking-tighter",
+                          filter === f
+                            ? "bg-slate-800 text-white"
+                            : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+                        )}
+                      >
+                        {f}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              {/* Experiment List */}
+              <div className="flex-1 overflow-y-auto scrollbar-hide">
+                <div className="px-4 py-3">
+                  <button
+                    onClick={() => setMode("scaffold")}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-all mb-4"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add experiment
+                  </button>
+
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3">
+                    All Experiments
+                  </p>
+                  <div className="space-y-0.5 -mx-4">
+                    {filteredExperiments.map((exp) => (
+                      <button
+                        key={exp.id}
+                        onClick={() => {
+                          setSelected(exp);
+                          setMode("archive");
+                        }}
+                        className={cn(
+                          "w-full text-left px-4 py-2.5 flex items-start gap-3 transition-colors group",
+                          selected?.id === exp.id && mode === "archive"
+                            ? "bg-indigo-50/50 border-r-2 border-indigo-600"
+                            : "hover:bg-slate-50",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "mt-1 w-2 h-2 rounded-full flex-shrink-0",
+                            statusConfig[exp.status].dot,
+                          )}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={cn(
+                              "text-xs font-semibold truncate",
+                              selected?.id === exp.id && mode === "archive"
+                                ? "text-indigo-700"
+                                : "text-slate-700",
+                            )}
+                          >
+                            {exp.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                            {exp.primaryMetric}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Center Panel: Main Workspace ────────────────────────────── */}
+            <div className="flex-1 overflow-hidden flex flex-col relative bg-slate-50">
+              <div className="h-14 border-b border-slate-200 bg-white/80 backdrop-blur-md px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-10">
+                <div className="flex items-center gap-3">
+                  <h2 className="font-bold text-slate-900 tracking-tight">
+                    {mode === "archive" && selected
+                      ? selected.name
+                      : modes.find((m) => m.id === mode)?.label}
+                  </h2>
+                  {mode === "archive" && selected && (
+                    <span
                       className={cn(
-                        "text-xs font-semibold truncate",
-                        selected.id === exp.id && mode === "archive"
-                          ? "text-indigo-700"
-                          : "text-slate-700",
+                        "text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tighter",
+                        statusConfig[selected.status].color,
                       )}
                     >
-                      {exp.name}
-                    </p>
-                    <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                      {exp.primaryMetric}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                      {statusConfig[selected.status].label}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                    <Search className="w-4 h-4" />
+                  </button>
+                  <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                    <Activity className="w-4 h-4" />
+                  </button>
+                  {mode === "archive" && selected && (
+                    <button
+                      onClick={handleCloseDetail}
+                      title="Back to all experiments"
+                      className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-hidden relative">
+                <AnimatePresence mode="wait">
+                  {mode === "archive" && selected && (
+                    <motion.div
+                      key={`archive-${selected.id}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="h-full"
+                    >
+                      <ArchiveDetailPanel
+                        experiment={selected}
+                        onAskAgent={handleAskAgent}
+                      />
+                    </motion.div>
+                  )}
+
+                  {mode === "live" && (
+                    <motion.div
+                      key="live"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="h-full"
+                    >
+                      <LiveModePanel
+                        runningExperiments={runningExperiments}
+                        onAskAgent={(scriptId) => handleAskAgent(scriptId)}
+                        onSelectExperiment={(exp) => {
+                          setSelected(exp);
+                          setMode("archive");
+                        }}
+                      />
+                    </motion.div>
+                  )}
+
+                  {mode === "decisions" && (
+                    <motion.div
+                      key="decisions"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="h-full"
+                    >
+                      <DecisionsModePanel
+                        experiments={allExperiments}
+                        onAskAgent={(scriptId) => handleAskAgent(scriptId)}
+                      />
+                    </motion.div>
+                  )}
+
+                  {mode === "scaffold" && (
+                    <motion.div
+                      key="scaffold"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="h-full"
+                    >
+                      <ScaffoldModePanel
+                        allExperiments={allExperiments}
+                        onSave={handleSaveScaffold}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ── Center Panel: Main Workspace ────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden flex flex-col relative bg-slate-50">
-        <div className="h-14 border-b border-slate-200 bg-white/80 backdrop-blur-md px-6 flex items-center justify-between flex-shrink-0 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <h2 className="font-bold text-slate-900 tracking-tight">
-              {mode === "archive"
-                ? selected.name
-                : modes.find((m) => m.id === mode)?.label}
-            </h2>
-            {mode === "archive" && (
-              <span
-                className={cn(
-                  "text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-tighter",
-                  statusConfig[selected.status].color,
-                )}
-              >
-                {statusConfig[selected.status].label}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-              <Search className="w-4 h-4" />
-            </button>
-            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-              <Activity className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-hidden relative">
-          <AnimatePresence mode="wait">
-            {mode === "archive" && (
-              <motion.div
-                key={`archive-${selected.id}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="h-full"
-              >
-                <ArchiveDetailPanel
-                  experiment={selected}
-                  onAskAgent={handleAskAgent}
-                />
-              </motion.div>
-            )}
-
-            {mode === "live" && (
-              <motion.div
-                key="live"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="h-full"
-              >
-                <LiveModePanel
-                  runningExperiments={runningExperiments}
-                  onAskAgent={(scriptId) => handleAskAgent(scriptId)}
-                  onSelectExperiment={(exp) => {
-                    setSelected(exp);
-                    setMode("archive");
-                  }}
-                />
-              </motion.div>
-            )}
-
-            {mode === "decisions" && (
-              <motion.div
-                key="decisions"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="h-full"
-              >
-                <DecisionsModePanel
-                  experiments={allExperiments}
-                  onAskAgent={(scriptId) => handleAskAgent(scriptId)}
-                />
-              </motion.div>
-            )}
-
-            {mode === "scaffold" && (
-              <motion.div
-                key="scaffold"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="h-full"
-              >
-                <ScaffoldModePanel
-                  allExperiments={allExperiments}
-                  onSave={handleSaveScaffold}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* ── Right Panel: Studio ────────────────────────────────────────────── */}
+      {/* ── Right Panel: Studio (always visible) ───────────────────────────── */}
       <div className="w-[340px] border-l border-slate-200 bg-white flex flex-col flex-shrink-0">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
@@ -1872,11 +2159,22 @@ export default function ExperimentsPage() {
                 </div>
 
                 <div className="flex-1 flex flex-col min-h-0">
-                  <RightAgentPanel
-                    experiment={selected}
-                    agentState={agentState}
-                    onRunScript={handleAskAgent}
-                  />
+                  {selected ? (
+                    <RightAgentPanel
+                      experiment={selected}
+                      agentState={agentState}
+                      onRunScript={handleAskAgent}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center mb-3">
+                        <Sparkles className="w-5 h-5 text-slate-300" />
+                      </div>
+                      <p className="text-xs text-slate-400 leading-relaxed max-w-[180px]">
+                        Select an experiment to use the agent.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
