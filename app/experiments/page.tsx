@@ -1588,7 +1588,9 @@ function ExperimentBrowseCard({
         <span className="text-[10px] font-mono text-slate-500 bg-slate-50 px-2 py-0.5 rounded">
           {experiment.primaryMetric}
         </span>
-        <span className="text-[10px] text-slate-400">{experiment.createdBy}</span>
+        <span className="text-[10px] text-slate-400">
+          {experiment.createdBy}
+        </span>
       </div>
     </button>
   );
@@ -1618,7 +1620,7 @@ function ExperimentBrowseView({
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white h-full">
       {/* Header */}
-      <div className="px-8 py-6 border-b border-slate-100 flex-shrink-0">
+      <div className="xl:px-8 lg:px-6 px-6 py-6 border-b border-slate-100 flex-shrink-0">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -1677,7 +1679,7 @@ function ExperimentBrowseView({
       </div>
 
       {/* Card grid */}
-      <div className="flex-1 overflow-y-auto p-8">
+      <div className="flex-1 overflow-y-auto xl:p-8 lg:p-6 p-6">
         {exps.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <Search className="w-10 h-10 text-slate-200 mb-4" />
@@ -1691,7 +1693,11 @@ function ExperimentBrowseView({
         ) : (
           <div className="grid grid-cols-2 gap-4">
             {exps.map((exp) => (
-              <ExperimentBrowseCard key={exp.id} experiment={exp} onSelect={onSelect} />
+              <ExperimentBrowseCard
+                key={exp.id}
+                experiment={exp}
+                onSelect={onSelect}
+              />
             ))}
           </div>
         )}
@@ -1857,7 +1863,7 @@ export default function ExperimentsPage() {
             transition={{ duration: 0.15 }}
           >
             {/* ── Left Panel: Sources / Experiments ──────────────────────── */}
-            <div className="w-72 border-r border-slate-200 bg-white flex flex-col flex-shrink-0">
+            <div className="xl:w-72 lg:w-60 w-60 border-r border-slate-200 bg-white flex flex-col flex-shrink-0">
               <div className="p-4 border-b border-slate-100">
                 <h1 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
                   Experiments
@@ -2068,7 +2074,7 @@ export default function ExperimentsPage() {
       </AnimatePresence>
 
       {/* ── Right Panel: Studio (always visible) ───────────────────────────── */}
-      <div className="w-[340px] border-l border-slate-200 bg-white flex flex-col flex-shrink-0">
+      <div className="xl:w-[340px] lg:w-[280px] w-[280px] border-l border-slate-200 bg-white flex flex-col flex-shrink-0">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
             Studio

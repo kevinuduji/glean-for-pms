@@ -40,7 +40,7 @@ export default function Sidebar() {
     <div
       className={cn(
         "h-full bg-slate-900 flex flex-col border-r border-slate-800 flex-shrink-0 transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-64",
+        isCollapsed ? "w-16" : "xl:w-56 lg:w-52 w-52",
       )}
     >
       {/* Logo & Toggle */}
@@ -60,7 +60,7 @@ export default function Sidebar() {
           <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
-          <span className="text-white font-semibold text-sm tracking-tight text-nowrap">
+          <span className="text-white font-semibold text-[13px] tracking-tight text-nowrap">
             Probe
           </span>
         </Link>
@@ -114,7 +114,7 @@ export default function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-all relative",
+                "flex items-center gap-3 px-3 py-1.5 rounded-lg text-[13px] transition-all relative",
                 isCollapsed && "justify-center px-0 w-12 h-12 mx-auto",
                 active
                   ? "text-slate-200 bg-slate-800"
@@ -147,7 +147,7 @@ export default function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-all relative",
+                "flex items-center gap-3 px-3 py-1.5 rounded-lg text-[13px] transition-all relative",
                 isCollapsed && "justify-center px-0 w-12 h-12 mx-auto",
                 active
                   ? "text-slate-200 bg-slate-800"
@@ -192,10 +192,10 @@ export default function Sidebar() {
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-slate-200 text-xs font-medium truncate">
+              <p className="text-slate-200 text-[11px] font-medium truncate">
                 Kevin
               </p>
-              <p className="text-slate-500 text-xs truncate">Pro Plan</p>
+              <p className="text-slate-500 text-[10px] truncate">Pro Plan</p>
             </div>
           )}
         </div>

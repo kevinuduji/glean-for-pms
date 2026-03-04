@@ -41,7 +41,7 @@ export default function AgentWorkflowPanel() {
   return (
     <div className="h-full flex flex-col bg-slate-50">
       {/* Header */}
-      <div className="px-6 py-6 border-b border-slate-200/60 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-slate-200/60 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between">
         <div className="space-y-1">
           <h3 className="font-bold text-slate-900 flex items-center gap-2 tracking-tight">
             Search Flow
@@ -59,9 +59,9 @@ export default function AgentWorkflowPanel() {
       </div>
 
       {/* Visual Flow Area */}
-      <div className="flex-1 overflow-y-auto px-6 py-8 relative">
+      <div className="flex-1 overflow-y-auto px-5 py-6 relative">
         {/* The connector line */}
-        <div className="absolute left-[47px] top-10 bottom-24 w-0.5 bg-slate-200 rounded-full" />
+        <div className="absolute left-[43px] top-8 bottom-20 w-0.5 bg-slate-200 rounded-full" />
 
         <div className="space-y-8 relative">
           <AnimatePresence>
@@ -83,9 +83,9 @@ export default function AgentWorkflowPanel() {
                   <div className="relative z-10">
                     <div
                       className={cn(
-                        "w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm border-2",
+                        "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-500 shadow-sm border-2",
                         status === "done"
-                          ? "bg-white border-green-500 shadow-green-100 scale-110"
+                          ? "bg-white border-green-500 shadow-green-100 scale-105"
                           : status === "running"
                             ? "bg-white border-indigo-500 animate-pulse"
                             : "bg-slate-100 border-slate-200",
@@ -107,7 +107,7 @@ export default function AgentWorkflowPanel() {
                   <div
                     onClick={() => status === "done" && toggleStep(step.id)}
                     className={cn(
-                      "flex-1 p-4 rounded-2xl transition-all cursor-pointer border",
+                      "flex-1 p-3 rounded-xl transition-all cursor-pointer border",
                       status === "done"
                         ? "bg-white border-slate-200/60 shadow-md shadow-slate-200/40 hover:border-slate-300"
                         : status === "running"
@@ -119,7 +119,7 @@ export default function AgentWorkflowPanel() {
                       <div className="space-y-1">
                         <p
                           className={cn(
-                            "text-xs font-bold font-mono tracking-tight leading-relaxed",
+                            "text-[11px] font-bold font-mono tracking-tight leading-relaxed",
                             status === "done"
                               ? "text-slate-900"
                               : status === "running"
@@ -197,7 +197,7 @@ export default function AgentWorkflowPanel() {
       </div>
 
       {/* Footer Info */}
-      <div className="p-6 bg-white border-t border-slate-200/60">
+      <div className="p-5 bg-white border-t border-slate-200/60">
         <div className="bg-slate-50 rounded-2xl p-4 flex items-center gap-4 border border-slate-100">
           <div className="flex -space-x-2">
             {["amplitude", "github", "sentry"].map((tool) => (

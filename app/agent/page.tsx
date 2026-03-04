@@ -105,7 +105,7 @@ function AgentPageInner() {
         <p
           key={i}
           className={cn(
-            "text-sm text-slate-700 leading-normal",
+            "text-[13px] text-slate-700 leading-normal",
             i > 0 && line === "" ? "mt-2" : "",
           )}
         >
@@ -118,14 +118,14 @@ function AgentPageInner() {
   return (
     <div className="flex h-full overflow-hidden bg-white">
       {/* Left panel: Connectors */}
-      <div className="w-[280px] flex-shrink-0">
+      <div className="xl:w-[240px] lg:w-[220px] w-[220px] flex-shrink-0">
         <ConnectorsSidebar />
       </div>
 
       {/* Middle panel: Chat */}
       <div className="flex-1 flex flex-col bg-white overflow-hidden">
         {/* Header */}
-        <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="xl:px-8 lg:px-6 px-6 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               Chat
@@ -145,20 +145,20 @@ function AgentPageInner() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-8 py-8 space-y-12">
+        <div className="flex-1 overflow-y-auto xl:px-8 lg:px-6 px-6 py-8 space-y-12">
           {conversation.length === 0 && (
             <div className="max-w-2xl mx-auto space-y-8 mt-12">
               <div className="text-center space-y-3">
-                <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
                   How can I help you today?
                 </h2>
-                <p className="text-slate-500 text-lg max-w-lg mx-auto leading-relaxed font-medium">
+                <p className="text-slate-500 text-base max-w-md mx-auto leading-relaxed font-medium">
                   Select your data connectors on the left and ask me anything
                   about your product, users, or performance.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 pt-10">
+              <div className="grid grid-cols-1 gap-4 pt-6">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">
                   Suggested queries
                 </p>
@@ -198,7 +198,7 @@ function AgentPageInner() {
 
                   <div
                     className={cn(
-                      "text-lg leading-relaxed",
+                      "text-base leading-relaxed",
                       msg.role === "user"
                         ? "font-bold text-slate-800"
                         : "font-normal text-slate-600",
@@ -207,7 +207,7 @@ function AgentPageInner() {
                     {msg.role === "user" ? (
                       msg.content
                     ) : (
-                      <div className="space-y-4 bg-white/50 border border-slate-100/50 p-6 rounded-3xl -ml-6 w-[calc(100%+3rem)]">
+                      <div className="space-y-4 bg-white/50 border border-slate-100/50 p-4 rounded-2xl -ml-4 w-[calc(100%+2rem)]">
                         {formatResponse(msg.content)}
                       </div>
                     )}
@@ -270,7 +270,7 @@ function AgentPageInner() {
         </div>
 
         {/* Input */}
-        <div className="px-8 py-8">
+        <div className="xl:px-8 lg:px-6 px-6 py-6">
           <div className="max-w-3xl mx-auto">
             {/* Agent Options */}
             <div className="flex items-center gap-3 mb-4">
@@ -347,7 +347,7 @@ function AgentPageInner() {
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Ask a question about your connectors..."
                     disabled={isRunning}
-                    className="flex-1 pl-6 pr-4 py-5 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-base font-medium disabled:opacity-50"
+                    className="flex-1 pl-6 pr-4 py-3.5 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-base font-medium disabled:opacity-50"
                   />
                   <div className="flex items-center gap-2 pr-4">
                     <div className="text-[10px] font-bold text-slate-400 px-2 py-1 bg-slate-100 rounded-md">
@@ -358,9 +358,9 @@ function AgentPageInner() {
                     <button
                       type="submit"
                       disabled={!inputValue.trim() || isRunning}
-                      className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-600/20 active:scale-95"
+                      className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-600/20 active:scale-95"
                     >
-                      <Send className="w-5 h-5 translate-x-0.5 -translate-y-0.5" />
+                      <Send className="w-4 h-4 translate-x-0.5 -translate-y-0.5" />
                     </button>
                   </div>
                 </div>
@@ -374,9 +374,21 @@ function AgentPageInner() {
       </div>
 
       {/* Right panel: Search Flow (Visual) */}
-      <div className="w-[380px] bg-slate-50 border-l border-slate-200 overflow-hidden">
-        <AgentWorkflowPanel />
-      </div>
+      <AnimatePresence>
+        {conversation.length > 0 && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "auto", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="xl:w-[320px] lg:w-[280px] w-[280px] bg-slate-50 border-l border-slate-200 overflow-hidden flex-shrink-0"
+          >
+            <div className="w-[280px] lg:w-[280px] xl:w-[320px]">
+              <AgentWorkflowPanel />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

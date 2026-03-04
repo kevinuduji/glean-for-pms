@@ -31,7 +31,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-full flex flex-col items-center pt-32 pb-12 px-6 bg-white">
+    <div className="min-h-full flex flex-col items-center pt-16 lg:pt-32 pb-12 px-6 bg-white">
       <AnimatePresence>
         {mounted && (
           <motion.div
@@ -41,7 +41,7 @@ export default function DashboardPage() {
             className="w-full max-w-3xl text-center"
           >
             <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-4 tracking-tight leading-tight">
-              Make Data-Driven Decision Making{" "}
+              Make Data-Driven Decisions{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
                 Faster
               </span>
