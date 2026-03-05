@@ -10,7 +10,7 @@ It pulls in data from across the entire product stack — not just clicks and pa
 
 **What it actually does with that data**
 
-Rather than just displaying dashboards, it reasons over everything and tells you what to do. It can diagnose why a metric dropped and trace it to a specific cause, surface the most relevant user sessions to watch, scaffold A/B tests end-to-end, audit what's being tracked and suggest what's missing, and produce retrospectives on shipped features so teams get better over time.
+Helps you make better product decisions by reasoning over data from third-party tools used to track product metrics and telling you what to do. It can diagnose why a metric dropped and trace it to a specific cause, surface the most relevant user sessions to watch, scaffold A/B tests end-to-end, audit what's being tracked and suggest what's missing, and produce retrospectives on shipped features so teams get better over time.
 
 **Who it's for**
 
