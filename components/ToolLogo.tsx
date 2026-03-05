@@ -16,6 +16,7 @@ export type Tool =
   | "linear"
   | "figma"
   | "intercom"
+  | "stripe"
   | "agent";
 
 const toolConfig: Record<
@@ -121,6 +122,13 @@ const toolConfig: Record<
     color: "text-blue-600",
     slug: "intercom",
     hex: "2867F1",
+  },
+  stripe: {
+    label: "Stripe",
+    bg: "bg-indigo-100",
+    color: "text-indigo-600",
+    slug: "stripe",
+    hex: "635BFF",
   },
   agent: {
     label: "Agent",

@@ -139,6 +139,20 @@ export const activeConnectors = [
       { label: "Linked tickets", value: "7" },
     ],
   },
+  {
+    id: "stripe",
+    name: "Stripe",
+    description: "B2B payments, subscriptions, and revenue analytics",
+    bg: "bg-indigo-100",
+    color: "text-indigo-700",
+    letter: "St",
+    lastSynced: "Just now",
+    stats: [
+      { label: "ARR", value: "$1.2M" },
+      { label: "MRR Growth", value: "+12%" },
+      { label: "Chargebacks", value: "0.1%" },
+    ],
+  },
 ];
 
 

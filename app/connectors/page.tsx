@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, Clock, X, CheckCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 import ToolLogo, { Tool } from "@/components/ToolLogo";
 import {
   LineChart,
@@ -33,6 +34,11 @@ import { paymentsLatency, serviceHealth } from "@/lib/mock-data/prometheus";
 import { slackChannels, recentMessages } from "@/lib/mock-data/slack";
 import { jiraIssues, jiraEpics, currentSprint } from "@/lib/mock-data/jira";
 import { notionDocs, notionDatabases } from "@/lib/mock-data/notion";
+import {
+  stripeRevenue,
+  stripeSubscriptionTiers,
+  stripeRecentCharges,
+} from "@/lib/mock-data/stripe";
 
 import { activeConnectors } from "@/lib/mock-data/connectors";
 
@@ -1263,6 +1269,98 @@ function NotionViewer() {
   );
 }
 
+function StripeViewer() {
+  const chartData = stripeRevenue.map((r) => ({
+    month: r.month,
+    revenue: r.revenue,
+    churn: r.churn,
+  }));
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+          Revenue Trend
+        </h3>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip
+              contentStyle={{
+                borderRadius: "8px",
+                border: "none",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              }}
+              formatter={(val: number | string | undefined) => [
+                typeof val === "number"
+                  ? `$${val.toLocaleString()}`
+                  : val || "",
+                "Revenue",
+              ]}
+            />
+            <Bar dataKey="revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {stripeSubscriptionTiers.map((tier) => (
+          <div
+            key={tier.name}
+            className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3"
+          >
+            <p className="text-xs font-bold text-indigo-600 mb-1">
+              {tier.name}
+            </p>
+            <p className="text-lg font-bold text-slate-900">{tier.users}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">
+              ${tier.price}/mo avg
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+          Recent Charges
+        </h3>
+        <div className="space-y-2">
+          {stripeRecentCharges.map((charge) => (
+            <div
+              key={charge.id}
+              className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    charge.status === "succeeded"
+                      ? "bg-green-500"
+                      : "bg-red-500",
+                  )}
+                />
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {charge.customer}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-mono uppercase tracking-tight">
+                    {charge.id} • {charge.date}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm font-bold text-slate-900">
+                ${charge.amount.toFixed(2)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Data Viewer Modal ───────────────────────────────────────────────────────
 
 const viewerConfig: Record<
@@ -1337,6 +1435,13 @@ const viewerConfig: Record<
     accentBg: "bg-zinc-100",
     accentText: "text-zinc-800",
     component: NotionViewer,
+  },
+  stripe: {
+    title: "Stripe",
+    subtitle: "B2B payments, subscriptions, and revenue analytics",
+    accentBg: "bg-indigo-100",
+    accentText: "text-indigo-700",
+    component: StripeViewer,
   },
 };
 

@@ -16,6 +16,7 @@ const ALL_CONNECTORS: { id: string; name: string; tool: Tool }[] = [
   { id: "slack", name: "Slack", tool: "slack" },
   { id: "jira", name: "Jira", tool: "jira" },
   { id: "notion", name: "Notion", tool: "notion" },
+  { id: "stripe", name: "Stripe", tool: "stripe" },
 ];
 
 export default function ConnectorsSidebar() {
