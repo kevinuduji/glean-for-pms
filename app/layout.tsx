@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import { PersistentAgent } from "@/components/PersistentAgent";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,6 +22,7 @@ export default function RootLayout({
         <div className="flex h-full">
           <Sidebar />
           <main className="flex-1 overflow-hidden">{children}</main>
+          <PersistentAgent />
         </div>
       </body>
     </html>

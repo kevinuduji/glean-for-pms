@@ -4,27 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Sparkles,
-  BarChart3,
   FlaskConical,
-  Play,
   Plug,
   Settings,
   Search,
   PanelLeftClose,
   PanelLeftOpen,
-  GitMerge,
-  Lightbulb,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const navItems = [
-  { href: "/agent", label: "Agent", icon: Sparkles },
-  { href: "/experiments", label: "Experiments", icon: FlaskConical },
-  { href: "/sessions", label: "Sessions", icon: Play },
-  { href: "/insights", label: "Insight", icon: BarChart3 },
-  { href: "/retrospective", label: "Retrospective", icon: GitMerge },
-  { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
+  { href: "/agent", label: "Agent", icon: Sparkles, description: "AI assistant chat" },
+  { href: "/discover", label: "Discover", icon: Search, description: "What should I work on?" },
+  { href: "/experiments", label: "Experiments", icon: FlaskConical, description: "Test & track experiments" },
+  { href: "/overview", label: "Overview", icon: LayoutDashboard, description: "Product health & insights" },
 ];
 
 const bottomNavItems = [
@@ -51,7 +46,7 @@ export default function Sidebar() {
         )}
       >
         <Link
-          href="/dashboard"
+          href="/agent"
           className={cn(
             "flex items-center gap-2.5 hover:opacity-80 transition-opacity",
             isCollapsed && "hidden",
@@ -105,22 +100,22 @@ export default function Sidebar() {
           isCollapsed && "space-y-2",
         )}
       >
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, description, icon: Icon }) => {
           const active =
             pathname === href ||
-            (href !== "/dashboard" && pathname.startsWith(href));
+            (href !== "/agent" && pathname.startsWith(href));
           return (
             <Link
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-all relative",
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all relative group",
                 isCollapsed && "justify-center px-0 w-12 h-12 mx-auto",
                 active
                   ? "text-slate-200 bg-slate-800"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800",
               )}
-              title={isCollapsed ? label : ""}
+              title={isCollapsed ? `${label}: ${description}` : ""}
             >
               <Icon
                 className={cn(
@@ -128,7 +123,12 @@ export default function Sidebar() {
                   isCollapsed ? "w-5 h-5" : "w-4 h-4",
                 )}
               />
-              {!isCollapsed && <span className="text-nowrap">{label}</span>}
+              {!isCollapsed && (
+                <div className="flex flex-col">
+                  <span className="text-nowrap font-medium">{label}</span>
+                  <span className="text-xs text-slate-500 text-nowrap">{description}</span>
+                </div>
+              )}
             </Link>
           );
         })}

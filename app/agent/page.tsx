@@ -11,6 +11,10 @@ import {
   Shield,
   Zap,
   Search,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import { useAgentStore } from "@/lib/store";
 import QuickQueryPills from "@/components/QuickQueryPills";
@@ -26,6 +30,8 @@ function AgentPageInner() {
   const [inputValue, setInputValue] = useState("");
   const [webEnabled, setWebEnabled] = useState(true);
   const [searchMode, setSearchMode] = useState<"fast" | "deep">("fast");
+  const [connectorsOpen, setConnectorsOpen] = useState(true);
+  const [searchFlowOpen, setSearchFlowOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasAutoRun = useRef(false);
@@ -118,7 +124,10 @@ function AgentPageInner() {
   return (
     <div className="flex h-full overflow-hidden bg-white">
       {/* Left panel: Connectors */}
-      <div className="w-[280px] flex-shrink-0">
+      <div className={cn(
+        "flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden",
+        connectorsOpen ? "w-[280px]" : "w-0"
+      )}>
         <ConnectorsSidebar />
       </div>
 
@@ -127,9 +136,28 @@ function AgentPageInner() {
         {/* Header */}
         <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Chat
-            </h1>
+            <button
+              onClick={() => setConnectorsOpen(!connectorsOpen)}
+              className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
+              title={connectorsOpen ? "Hide connectors" : "Show connectors"}
+            >
+              {connectorsOpen ? (
+                <PanelLeftClose className="w-4 h-4" />
+              ) : (
+                <PanelLeftOpen className="w-4 h-4" />
+              )}
+            </button>
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                Probe Agent
+              </h1>
+              <p className="text-xs text-slate-500">
+                Your AI assistant for product insights and experimentation
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {conversation.length > 0 && (
@@ -141,6 +169,17 @@ function AgentPageInner() {
                 Reset
               </button>
             )}
+            <button
+              onClick={() => setSearchFlowOpen(!searchFlowOpen)}
+              className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
+              title={searchFlowOpen ? "Hide search flow" : "Show search flow"}
+            >
+              {searchFlowOpen ? (
+                <PanelRightClose className="w-4 h-4" />
+              ) : (
+                <PanelRightOpen className="w-4 h-4" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -153,8 +192,7 @@ function AgentPageInner() {
                   How can I help you today?
                 </h2>
                 <p className="text-slate-500 text-lg max-w-lg mx-auto leading-relaxed font-medium">
-                  Select your data connectors on the left and ask me anything
-                  about your product, users, or performance.
+                  I can help you analyze your product data, design experiments, investigate user behavior, and make data-driven decisions.
                 </p>
               </div>
 
@@ -163,6 +201,39 @@ function AgentPageInner() {
                   Suggested queries
                 </p>
                 <QuickQueryPills layout="wrap" onPillClick={handlePillClick} />
+              </div>
+
+              {/* Quick action cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-8">
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mb-3">
+                    <Search className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-1">Investigate Issues</h3>
+                  <p className="text-xs text-slate-600">
+                    Ask me to analyze user sessions, conversion funnels, or performance issues
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mb-3">
+                    <Zap className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-1">Design Experiments</h3>
+                  <p className="text-xs text-slate-600">
+                    Get help creating A/B tests, defining hypotheses, and measuring success
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl">
+                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mb-3">
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-1">Get Insights</h3>
+                  <p className="text-xs text-slate-600">
+                    Discover patterns in your data and get recommendations for improvements
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -345,7 +416,7 @@ function AgentPageInner() {
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Ask a question about your connectors..."
+                    placeholder="Ask me anything about your product, users, or experiments..."
                     disabled={isRunning}
                     className="flex-1 pl-6 pr-4 py-5 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-base font-medium disabled:opacity-50"
                   />
@@ -374,7 +445,10 @@ function AgentPageInner() {
       </div>
 
       {/* Right panel: Search Flow (Visual) */}
-      <div className="w-[380px] bg-slate-50 border-l border-slate-200 overflow-hidden">
+      <div className={cn(
+        "bg-slate-50 border-l border-slate-200 overflow-hidden transition-all duration-300 ease-in-out flex-shrink-0",
+        searchFlowOpen ? "w-[380px]" : "w-0 border-l-0"
+      )}>
         <AgentWorkflowPanel />
       </div>
     </div>
