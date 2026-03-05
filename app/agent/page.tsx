@@ -3,7 +3,16 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, RotateCcw, Globe, Shield, Zap, Search } from "lucide-react";
+import {
+  Send,
+  RotateCcw,
+  Globe,
+  Shield,
+  Zap,
+  Search,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { useAgentStore } from "@/lib/store";
 import QuickQueryPills from "@/components/QuickQueryPills";
 import AgentWorkflowPanel from "@/components/AgentWorkflowPanel";
@@ -17,6 +26,7 @@ function AgentPageInner() {
   const searchParams = useSearchParams();
   const { runScript, runLive, resetAgent, conversation, isRunning } =
     useAgentStore();
+  const [isConnectorsOpen, setIsConnectorsOpen] = useState(true);
   const [inputValue, setInputValue] = useState("");
   const [webEnabled, setWebEnabled] = useState(true);
   const [searchMode, setSearchMode] = useState<"fast" | "deep">("fast");
@@ -112,15 +122,39 @@ function AgentPageInner() {
   return (
     <div className="flex h-full overflow-hidden bg-white">
       {/* Left panel: Connectors */}
-      <div className="xl:w-[240px] lg:w-[220px] w-[220px] flex-shrink-0 h-full overflow-hidden">
-        <ConnectorsSidebar />
-      </div>
+      <motion.div
+        animate={{ width: isConnectorsOpen ? "240px" : "64px" }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="flex-shrink-0 h-full overflow-hidden bg-slate-50 border-r border-slate-200"
+      >
+        <div
+          className={cn(
+            "h-full transition-all duration-300",
+            isConnectorsOpen ? "w-[240px]" : "w-[64px]",
+          )}
+        >
+          <ConnectorsSidebar isCollapsed={!isConnectorsOpen} />
+        </div>
+      </motion.div>
 
       {/* Middle panel: Chat */}
       <div className="flex-1 flex flex-col bg-white overflow-hidden">
         {/* Header */}
         <div className="xl:px-8 lg:px-6 px-6 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsConnectorsOpen(!isConnectorsOpen)}
+              className="p-1.5 -ml-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-all"
+              title={
+                isConnectorsOpen ? "Collapse connectors" : "Expand connectors"
+              }
+            >
+              {isConnectorsOpen ? (
+                <PanelLeftClose className="w-4 h-4" />
+              ) : (
+                <PanelLeftOpen className="w-4 h-4" />
+              )}
+            </button>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               Chat
             </h1>
@@ -147,8 +181,9 @@ function AgentPageInner() {
                   How can I help you today?
                 </h2>
                 <p className="text-slate-500 text-base max-w-md mx-auto leading-relaxed font-medium">
-                  Select your data connectors on the left and ask me anything
-                  about your product, users, or performance.
+                  {isConnectorsOpen
+                    ? "Select your data connectors on the left and ask me anything about your product, users, or performance."
+                    : "Expand your connectors panel on the left to see and select your data sources."}
                 </p>
               </div>
 

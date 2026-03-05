@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  BarChart3,
   BookOpen,
   Check,
   ChevronRight,
-  Clock,
   Copy,
   ExternalLink,
+  Filter,
   FlaskConical,
   GitBranch,
   GitMerge,
@@ -19,6 +20,7 @@ import {
   MessageSquare,
   Play,
   RotateCcw,
+  Search,
   Sparkles,
   TicketIcon,
   Users,
@@ -38,22 +40,6 @@ import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/utils";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const ALL_PRIORITIES: UnifiedPriority[] = ["critical", "high", "medium"];
-const ALL_SOURCES: Source[] = [
-  "Amplitude",
-  "GitHub",
-  "Sentry",
-  "Prometheus",
-  "UX",
-];
-const ALL_AREAS: Area[] = [
-  "Acquisition",
-  "Activation",
-  "Retention",
-  "Revenue",
-  "Performance",
-];
 
 // ─── Config Maps ──────────────────────────────────────────────────────────────
 
@@ -189,197 +175,7 @@ function CardSkeleton() {
   );
 }
 
-// ─── Checkbox ─────────────────────────────────────────────────────────────────
-
-function Checkbox({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onChange}
-      className="flex items-center gap-2 text-xs text-slate-600 hover:text-slate-900 transition-colors w-full text-left"
-    >
-      <div
-        className={cn(
-          "w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
-          checked
-            ? "bg-indigo-600 border-indigo-600"
-            : "border-slate-300 bg-white hover:border-slate-400",
-        )}
-      >
-        {checked && (
-          <svg className="w-2 h-2 text-white" viewBox="0 0 8 8" fill="none">
-            <path
-              d="M1.5 4L3 5.5L6.5 2"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
-      </div>
-      <span>{label}</span>
-    </button>
-  );
-}
-
-// ─── Filter Sidebar ───────────────────────────────────────────────────────────
-
-function FilterSidebar({
-  filters,
-  onChange,
-}: {
-  filters: Filters;
-  onChange: (f: Filters) => void;
-}) {
-  function toggleSet<T>(set: Set<T>, value: T): Set<T> {
-    const next = new Set(set);
-    if (next.has(value)) next.delete(value);
-    else next.add(value);
-    return next;
-  }
-
-  return (
-    <div className="w-[220px] flex-shrink-0 border-r border-slate-200 bg-white flex flex-col overflow-y-auto">
-      {/* Filters */}
-      <div className="p-4 space-y-5 flex-1">
-        {/* Type */}
-        <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-            Type
-          </p>
-          <div className="space-y-2">
-            <Checkbox
-              checked={filters.types.has("recommendation")}
-              onChange={() =>
-                onChange({
-                  ...filters,
-                  types: toggleSet(
-                    filters.types,
-                    "recommendation" as FeedItemType,
-                  ),
-                })
-              }
-              label="💡 Recommendations"
-            />
-            <Checkbox
-              checked={filters.types.has("friction-session")}
-              onChange={() =>
-                onChange({
-                  ...filters,
-                  types: toggleSet(
-                    filters.types,
-                    "friction-session" as FeedItemType,
-                  ),
-                })
-              }
-              label="⚡ Attention"
-            />
-          </div>
-        </div>
-
-        {/* Priority */}
-        <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-            Priority
-          </p>
-          <div className="space-y-2">
-            {ALL_PRIORITIES.map((p) => (
-              <Checkbox
-                key={p}
-                checked={filters.priorities.has(p)}
-                onChange={() =>
-                  onChange({
-                    ...filters,
-                    priorities: toggleSet(filters.priorities, p),
-                  })
-                }
-                label={
-                  p === "critical"
-                    ? "🔴 Critical"
-                    : p === "high"
-                      ? "🟡 High"
-                      : "🟢 Medium"
-                }
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Source */}
-        <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-            Source
-          </p>
-          <div className="space-y-2">
-            {ALL_SOURCES.map((s) => (
-              <Checkbox
-                key={s}
-                checked={filters.sources.has(s)}
-                onChange={() =>
-                  onChange({
-                    ...filters,
-                    sources: toggleSet(filters.sources, s),
-                  })
-                }
-                label={s}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Area */}
-        <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-            Area
-          </p>
-          <div className="space-y-2">
-            {ALL_AREAS.map((a) => (
-              <Checkbox
-                key={a}
-                checked={filters.areas.has(a)}
-                onChange={() =>
-                  onChange({ ...filters, areas: toggleSet(filters.areas, a) })
-                }
-                label={a}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Show resolved */}
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-xs text-slate-600">Show resolved</span>
-          <button
-            onClick={() =>
-              onChange({ ...filters, showResolved: !filters.showResolved })
-            }
-            className={cn(
-              "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-              filters.showResolved ? "bg-indigo-600" : "bg-slate-200",
-            )}
-          >
-            <span
-              className={cn(
-                "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform",
-                filters.showResolved ? "translate-x-4" : "translate-x-1",
-              )}
-            />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Feed Item Card ───────────────────────────────────────────────────────────
+// ─── Checkbox ─────────────────────────────────────────────────────────────────// ─── Feed Item Card ───────────────────────────────────────────────────────────
 
 function FeedItemCard({
   item,
@@ -407,168 +203,171 @@ function FeedItemCard({
       exit={{ opacity: 0, y: -4 }}
       onClick={onClick}
       className={cn(
-        "relative bg-white border rounded-xl p-4 cursor-pointer transition-all duration-150 group",
-        item.unifiedPriority === "critical" && pc.border,
-        selected
-          ? "border-indigo-400 ring-1 ring-indigo-200 bg-indigo-50/20 shadow-md"
-          : "border-slate-200 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5",
+        "relative bg-white border rounded-xl flex flex-col cursor-pointer transition-all duration-150 overflow-hidden",
+        item.unifiedPriority === "critical"
+          ? "border-red-200 ring-1 ring-red-100"
+          : item.unifiedPriority === "high"
+            ? "border-amber-200 ring-1 ring-amber-100"
+            : "border-slate-200 ring-1 ring-transparent hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5",
+        selected && "border-indigo-400 ring-indigo-200 shadow-md",
       )}
+      style={{
+        borderLeftWidth: "4px",
+        borderLeftColor:
+          item.unifiedPriority === "critical"
+            ? "#EF4444"
+            : item.unifiedPriority === "high"
+              ? "#F59E0B"
+              : "#6366f1",
+      }}
     >
-      {/* Row 1: Type + Priority + New + Time */}
-      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-        {/* Type badge */}
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border",
-            isSession
-              ? "bg-orange-50 text-orange-700 border-orange-200"
-              : "bg-indigo-50 text-indigo-700 border-indigo-200",
-          )}
-        >
-          {isSession ? (
-            <Play className="w-2.5 h-2.5" />
-          ) : (
-            <Lightbulb className="w-2.5 h-2.5" />
-          )}
-          {isSession
-            ? item.source.issueType
-              ? issueTypeConfig[item.source.issueType]?.label
-              : "Attention"
-            : "Recommendation"}
-        </span>
-
-        {/* Priority badge */}
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
-            pc.badge,
-          )}
-        >
-          {pc.emoji} {pc.label}
-        </span>
-
-        {item.isNew && (
-          <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">
-            New
-          </span>
-        )}
-
-        <span className="ml-auto text-[10px] text-slate-400 flex items-center gap-1 flex-shrink-0">
-          <Clock className="w-3 h-3" />
-          {relativeTime(item.detectedAt)}
-          <span className="text-slate-300">·</span>
-          <span className="text-slate-400">{item.area}</span>
-        </span>
-      </div>
-
-      {/* Row 2: Headline */}
-      <p className="text-sm font-semibold text-slate-900 leading-snug mb-1.5 line-clamp-2">
-        {headline}
-      </p>
-
-      {/* Row 3: Summary / annotation */}
-      <div className="flex items-start gap-1 mb-3">
-        {isSession && item.source.agentAnnotation && (
-          <Sparkles className="w-3 h-3 text-indigo-400 mt-0.5 flex-shrink-0" />
-        )}
-        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-          {summary}
-        </p>
-      </div>
-
-      {/* Row 4: Sources / impact */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {isSession ? (
-          <>
-            {item.source.issueType && (
+      <div className="p-5 flex flex-col flex-1">
+        {/* Header: Icon, Title, Priority, Time */}
+        <div className="flex items-start justify-between mb-3 gap-3">
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                isSession
+                  ? "bg-indigo-50 text-indigo-600"
+                  : "bg-indigo-50 text-indigo-600",
+              )}
+            >
+              {isSession ? (
+                <AlertTriangle className="w-4 h-4" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+            </div>
+            <div>
+              <h3 className="text-[15px] font-bold text-slate-900 leading-tight">
+                {headline}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 font-medium">
+                {isSession
+                  ? item.source.issueType
+                    ? issueTypeConfig[item.source.issueType]?.label
+                    : "Session Replay"
+                  : item.source.sources.join(" + ")}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  "text-[10px] font-medium px-1.5 py-0.5 rounded border",
-                  issueTypeConfig[item.source.issueType]?.color,
+                  "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border",
+                  pc.badge,
                 )}
               >
-                PostHog Session
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    item.unifiedPriority === "critical"
+                      ? "bg-red-500"
+                      : item.unifiedPriority === "high"
+                        ? "bg-amber-500"
+                        : "bg-slate-500",
+                  )}
+                />
+                <span>{pc.label.toLowerCase()}</span>
               </span>
-            )}
-            <span className="flex items-center gap-1 text-[10px] text-slate-400 ml-auto">
-              <Users className="w-3 h-3" />~{item.source.impactScore} affected
-            </span>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-1 flex-wrap">
-              {item.source.sources.map((s) => {
-                const sc = sourceConfig[s];
-                return (
-                  <span
-                    key={s}
-                    className={cn(
-                      "text-[10px] font-medium px-1.5 py-0.5 rounded border",
-                      sc.bg,
-                      sc.color,
-                    )}
-                  >
-                    {s}
-                  </span>
-                );
-              })}
+              <span className="text-[11px] text-slate-400 font-medium">
+                {relativeTime(item.detectedAt)}
+              </span>
             </div>
-            {item.source.confidence !== null ? (
-              <span
-                className="text-[10px] text-slate-400 ml-auto"
-                title={item.source.confidenceReason}
-              >
-                {item.source.confidence}% confidence{" "}
-                <span className="text-slate-300">ⓘ</span>
-              </span>
-            ) : (
-              <span className="text-[10px] text-slate-400 ml-auto italic">
-                Requires triage
-              </span>
-            )}
-          </>
-        )}
-      </div>
+          </div>
+        </div>
 
-      {/* Row 5: Actions */}
-      <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
-        {!isSession && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            className="flex items-center gap-1 text-[11px] font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2 py-1 rounded-md transition-colors"
-          >
-            <FlaskConical className="w-3 h-3" />
-            Experiment
-          </button>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCreateTicket();
-          }}
-          className="flex items-center gap-1 text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 px-2 py-1 rounded-md transition-colors"
-        >
-          <TicketIcon className="w-3 h-3" />
-          Ticket
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFixInGitHub();
-          }}
-          className="flex items-center gap-1 text-[11px] font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-2 py-1 rounded-md transition-colors"
-        >
-          <Github className="w-3 h-3" />
-          Generate changes
-        </button>
-        <button
-          onClick={(e) => e.stopPropagation()}
-          className="ml-auto text-[11px] text-slate-400 hover:text-slate-600 px-1 py-1 rounded transition-colors"
-        >
-          Dismiss
-        </button>
+        {/* Summary Description */}
+        <p className="text-sm text-slate-600 leading-relaxed mb-4 flex-1">
+          {summary}
+        </p>
+
+        {/* AI Confidence & Tags */}
+        <div className="flex flex-col gap-2.5 mb-5 mt-auto">
+          {!isSession && item.source.confidence !== null ? (
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded w-fit">
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Recommendation{" "}
+              <span className="text-indigo-400 font-normal">
+                {item.source.confidence}% confidence
+              </span>
+            </div>
+          ) : isSession ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 px-2.5 py-1 rounded-full w-fit mb-1">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Urgent
+            </div>
+          ) : null}
+          <div className="flex items-center gap-2 flex-wrap pb-1">
+            <span className="text-[12px] font-medium bg-slate-50 text-slate-600 px-2.5 py-1 rounded-md border border-slate-200">
+              {isSession ? "checkout_completion_rate" : "search_query_events"}
+            </span>
+            {isSession && (
+              <>
+                <span className="text-[12px] font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
+                  -23%
+                </span>
+                <span className="text-[12px] font-medium text-slate-500">
+                  450 sessions
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Actions Row */}
+        <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+          <div className="flex items-center gap-2">
+            {!isSession ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFixInGitHub();
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 px-3.5 py-1.5 rounded-full transition-colors"
+              >
+                {"</>"} Set Up Tracking
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateTicket();
+                }}
+                className="flex items-center gap-1.5 text-xs font-medium bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-full transition-colors"
+              >
+                <Search className="w-3.5 h-3.5" />
+                Investigate
+              </button>
+            )}
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isSession) {
+                  onFixInGitHub();
+                } else {
+                  onCreateTicket();
+                }
+              }}
+              className="flex items-center gap-1.5 text-xs font-medium bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-full transition-colors"
+            >
+              {!isSession ? (
+                <Search className="w-3.5 h-3.5" />
+              ) : (
+                <TicketIcon className="w-3.5 h-3.5" />
+              )}
+              {!isSession ? "View in Code" : "Create Ticket"}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[12px] text-slate-400 font-medium">
+            <Users className="w-4 h-4" />
+            {isSession ? item.source.impactScore : "1,200"}
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -635,9 +434,10 @@ function UnifiedDetailPanel({
           )}
           <button
             onClick={onClose}
-            className="ml-auto p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
+            className="ml-auto p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 border border-transparent hover:border-slate-200"
+            title="Close details"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
         <h2 className="text-sm font-bold text-slate-900 leading-snug">
@@ -754,7 +554,7 @@ function UnifiedDetailPanel({
                         key={i}
                         className="w-full text-left text-xs text-indigo-700 bg-white border border-indigo-100 hover:border-indigo-300 hover:bg-indigo-50 rounded-lg px-3 py-2 transition-colors leading-relaxed"
                       >
-                        "{prompt}"
+                        &quot;{prompt}&quot;
                       </button>
                     ))}
                   </div>
@@ -948,29 +748,6 @@ function UnifiedDetailPanel({
           Generate changes
         </button>
       </div>
-    </motion.div>
-  );
-}
-
-// ─── Empty Detail State ───────────────────────────────────────────────────────
-
-function EmptyDetail() {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-[420px] flex-shrink-0 border-l border-slate-200 bg-white flex-col items-center justify-center text-center p-10 hidden lg:flex"
-    >
-      <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
-        <Lightbulb className="w-6 h-6 text-slate-300" />
-      </div>
-      <p className="text-sm font-semibold text-slate-400 mb-1">
-        Select an issue
-      </p>
-      <p className="text-xs text-slate-400 max-w-[200px] leading-relaxed">
-        Click any card to see the full diagnosis, evidence, and one-click
-        actions.
-      </p>
     </motion.div>
   );
 }
@@ -1543,101 +1320,64 @@ export default function RecommendationsPage() {
     setMobileDetailOpen(true);
   }
 
-  const criticalCount = allItems.filter(
-    (i) => i.unifiedPriority === "critical" && !i.resolved,
-  ).length;
-
   return (
     <div className="flex h-full overflow-hidden bg-slate-50">
-      {/* Left Sidebar — hidden on mobile */}
-      <div className="hidden md:flex">
-        <FilterSidebar filters={filters} onChange={setFilters} />
-      </div>
-
       {/* Center Feed */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Feed Header */}
-        <div className="px-6 py-4 border-b border-slate-200 bg-white flex-shrink-0">
-          <div className="flex items-start gap-3 mb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-slate-900">
-                  Recommendations
-                </h1>
-                {criticalCount > 0 && (
-                  <span className="text-[11px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">
-                    {criticalCount} critical
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Friction sessions and AI recommendations — sorted by impact.
-              </p>
-            </div>
-            <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-[11px] text-slate-400">
-                Updated 4 min ago
-              </span>
-            </div>
-          </div>
+        {/* Discover Header */}
+        <div className="px-8 pt-8 pb-4 border-b border-slate-200 bg-white flex-shrink-0">
+          <h1 className="text-2xl font-bold text-slate-900 mb-1">Discover</h1>
+          <p className="text-sm text-slate-500">
+            What should I work on next? AI-powered insights from across your
+            product stack.
+          </p>
 
-          {/* Type Tabs */}
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-            {(["all", "recommendation", "friction-session"] as const).map(
-              (tab) => {
-                const label =
-                  tab === "all"
-                    ? "All"
-                    : tab === "recommendation"
-                      ? "Recommendations"
-                      : "Attention";
-                const count =
-                  tab === "all"
-                    ? allItems.filter((i) => !i.resolved).length
-                    : allItems.filter((i) => i.feedType === tab && !i.resolved)
-                        .length;
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => {
-                      setFeedTab(tab);
-                      setFilters((f) => ({ ...f, types: new Set() }));
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                      feedTab === tab && filters.types.size === 0
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700",
-                    )}
-                  >
-                    {tab === "recommendation" && (
-                      <Lightbulb className="w-3 h-3" />
-                    )}
-                    {tab === "friction-session" && <Play className="w-3 h-3" />}
-                    {label}
-                    <span
-                      className={cn(
-                        "text-[10px] font-semibold px-1 py-0.5 rounded-full min-w-[18px] text-center",
-                        feedTab === tab && filters.types.size === 0
-                          ? "bg-slate-100 text-slate-600"
-                          : "bg-slate-200 text-slate-500",
-                      )}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              },
-            )}
+          <div className="mt-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-500 flex items-center gap-2 mr-2">
+                <Filter className="w-4 h-4" />
+                Filter by:
+              </span>
+              <select
+                className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={feedTab}
+                onChange={(e) => {
+                  setFeedTab(e.target.value as FeedTab);
+                  setFilters((f) => ({ ...f, types: new Set() }));
+                }}
+              >
+                <option value="all">All Types</option>
+                <option value="recommendation">Recommendations</option>
+                <option value="friction-session">Attention</option>
+              </select>
+              <select
+                className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const newPriorities = new Set<UnifiedPriority>();
+                  if (val !== "all") newPriorities.add(val as UnifiedPriority);
+                  setFilters((f) => ({ ...f, priorities: newPriorities }));
+                }}
+              >
+                <option value="all">All Priorities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+              </select>
+            </div>
+
+            <button className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">
+              <BarChart3 className="w-4 h-4" />
+              View Analytics
+            </button>
           </div>
         </div>
 
         {/* Feed Body */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {isLoading ? (
-            <div className="space-y-3 max-w-2xl">
-              {[...Array(5)].map((_, i) => (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+              {[...Array(6)].map((_, i) => (
                 <CardSkeleton key={i} />
               ))}
             </div>
@@ -1670,7 +1410,7 @@ export default function RecommendationsPage() {
               </button>
             </div>
           ) : (
-            <div className="space-y-3 max-w-2xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto items-start">
               <AnimatePresence mode="popLayout">
                 {filtered.map((item) => (
                   <FeedItemCard
@@ -1689,9 +1429,9 @@ export default function RecommendationsPage() {
       </div>
 
       {/* Right Detail Panel — desktop */}
-      <div className="hidden lg:flex">
-        <AnimatePresence mode="wait">
-          {selectedItem ? (
+      <AnimatePresence>
+        {selectedItem && (
+          <div className="hidden lg:flex">
             <UnifiedDetailPanel
               key={selectedItem.feedId}
               item={selectedItem}
@@ -1699,11 +1439,9 @@ export default function RecommendationsPage() {
               onCreateTicket={() => setTicketModalItem(selectedItem)}
               onFixInGitHub={() => setGithubModalItem(selectedItem)}
             />
-          ) : (
-            <EmptyDetail key="empty" />
-          )}
-        </AnimatePresence>
-      </div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Detail Sheet */}
       <AnimatePresence>
@@ -1743,7 +1481,7 @@ export default function RecommendationsPage() {
           <JiraTicketModal
             item={ticketModalItem}
             onClose={() => setTicketModalItem(null)}
-            onSubmit={(_id) => {
+            onSubmit={() => {
               setTimeout(() => setTicketModalItem(null), 2000);
             }}
           />

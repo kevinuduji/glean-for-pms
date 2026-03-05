@@ -21,6 +21,8 @@ export type Chat = {
   title: string;
   messages: ConversationMessage[];
   projectId?: string;
+  teamId?: string;
+  folderId?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -95,7 +97,7 @@ type AgentStore = {
   resetAgent: (saveFirst?: boolean) => void;
 
   // Chat history actions
-  saveCurrentChat: () => string | null;
+  saveCurrentChat: (teamId?: string, folderId?: string) => string | null;
   loadChat: (chatId: string) => void;
   deleteChat: (chatId: string) => void;
   renameChat: (chatId: string, title: string) => void;
@@ -329,7 +331,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   // ── Chat history actions ───────────────────────────────────────────────
 
-  saveCurrentChat: () => {
+  saveCurrentChat: (teamId?: string, folderId?: string) => {
     const { conversation, activeChatId, savedChats, projects } = get();
     if (conversation.length === 0) return null;
 
@@ -352,6 +354,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       id: `chat-${Date.now()}`,
       title: autoTitle(conversation),
       messages: conversation,
+      ...(teamId ? { teamId } : {}),
+      ...(folderId ? { folderId } : {}),
       createdAt: now,
       updatedAt: now,
     };

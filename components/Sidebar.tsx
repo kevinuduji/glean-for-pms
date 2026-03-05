@@ -13,19 +13,23 @@ import {
   PanelLeftOpen,
   GitMerge,
   Lightbulb,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 import Image from "next/image";
 import logo from "@/assets/Probe Logo.png";
+import { useWorkspaceStore } from "@/lib/workspace-store";
+import TeamSwitcherPanel from "@/components/TeamSwitcherPanel";
+import WorkspaceSwitcherDropdown from "@/components/WorkspaceSwitcherDropdown";
 
 const navItems = [
   { href: "/agent", label: "Agent", icon: Sparkles },
   { href: "/experiments", label: "Experiments", icon: FlaskConical },
   { href: "/insights", label: "Insight", icon: BarChart3 },
   { href: "/retrospective", label: "Retrospective", icon: GitMerge },
-  { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
+  { href: "/discover", label: "Discover", icon: Search },
 ];
 
 const bottomNavItems = [
@@ -33,9 +37,21 @@ const bottomNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Workspace Admin",
+  member: "Member",
+  viewer: "Viewer",
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
+
+  const { workspaces, activeWorkspaceId, getWorkspaceRole } =
+    useWorkspaceStore();
+  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+  const workspaceRole = getWorkspaceRole();
 
   return (
     <div
@@ -98,6 +114,43 @@ export default function Sidebar() {
         </button>
       </div>
 
+      {/* Workspace chip */}
+      {!isCollapsed && activeWorkspace && (
+        <div className="px-3 pb-2 relative">
+          <button
+            type="button"
+            onClick={() => setShowWorkspaceDropdown((v) => !v)}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition-colors group"
+          >
+            <div
+              className={cn(
+                "w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0",
+                activeWorkspace.logoColor,
+              )}
+            >
+              <span className="text-white font-bold text-[10px]">
+                {activeWorkspace.logoInitial}
+              </span>
+            </div>
+            <span className="flex-1 text-left text-slate-300 text-[12px] font-medium truncate">
+              {activeWorkspace.name}
+            </span>
+            <ChevronDown
+              className={cn(
+                "w-3.5 h-3.5 text-slate-500 transition-transform",
+                showWorkspaceDropdown && "rotate-180",
+              )}
+            />
+          </button>
+
+          {showWorkspaceDropdown && (
+            <WorkspaceSwitcherDropdown
+              onClose={() => setShowWorkspaceDropdown(false)}
+            />
+          )}
+        </div>
+      )}
+
       {/* Search */}
       <div className={cn("px-3 pb-2", isCollapsed && "hidden")}>
         <button className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-xs hover:bg-slate-700 transition-colors">
@@ -109,6 +162,16 @@ export default function Sidebar() {
 
       <div
         className={cn("h-px bg-slate-800 mx-3 mb-2", isCollapsed && "mx-2")}
+      />
+
+      {/* Team switcher */}
+      <TeamSwitcherPanel isCollapsed={isCollapsed} />
+
+      <div
+        className={cn(
+          "h-px bg-slate-800 mx-3 mb-2 mt-1",
+          isCollapsed && "mx-2",
+        )}
       />
 
       {/* Nav items - Scrollable */}
@@ -208,7 +271,9 @@ export default function Sidebar() {
               <p className="text-slate-200 text-[11px] font-medium truncate">
                 Kevin
               </p>
-              <p className="text-slate-500 text-[10px] truncate">Pro Plan</p>
+              <p className="text-slate-500 text-[10px] truncate">
+                {ROLE_LABELS[workspaceRole] ?? "Pro Plan"}
+              </p>
             </div>
           )}
         </div>

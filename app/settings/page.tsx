@@ -26,6 +26,13 @@ import { cn } from "@/lib/utils";
 import ToolLogo, { Tool } from "@/components/ToolLogo";
 
 import { activeConnectors } from "@/lib/mock-data/connectors";
+import { useWorkspaceStore } from "@/lib/workspace-store";
+import { USERS, SEED_WORKSPACE_MEMBERS } from "@/lib/mock-data/workspace";
+import VisibilityToggle from "@/components/VisibilityToggle";
+import CreateTeamModal from "@/components/modals/CreateTeamModal";
+import TeamMemberModal from "@/components/modals/TeamMemberModal";
+import type { Visibility, WorkspaceRole, TeamRole } from "@/lib/types/workspace";
+import * as LucideIcons from "lucide-react";
 
 type SettingsSection =
   | "account"
@@ -33,7 +40,9 @@ type SettingsSection =
   | "billing"
   | "usage"
   | "connectors"
-  | "capabilities";
+  | "capabilities"
+  | "workspace"
+  | "teams";
 
 interface SectionConfig {
   id: SettingsSection;
@@ -80,6 +89,18 @@ const sections: SectionConfig[] = [
     icon: Bot,
     description: "Configure AI models and advanced features",
   },
+  {
+    id: "workspace",
+    label: "Workspace",
+    icon: Settings,
+    description: "Manage workspace members, roles, and general settings",
+  },
+  {
+    id: "teams",
+    label: "Teams",
+    icon: Cpu,
+    description: "Create and manage teams, membership, and access control",
+  },
 ];
 
 export default function SettingsPage() {
@@ -101,6 +122,10 @@ export default function SettingsPage() {
 
       case "capabilities":
         return <CapabilitiesSettings />;
+      case "workspace":
+        return <WorkspaceSettings />;
+      case "teams":
+        return <TeamsSettings />;
       default:
         return null;
     }
@@ -713,6 +738,453 @@ function CapabilitiesSettings() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Workspace Settings ──────────────────────────────────────────────────────
+
+const LOGO_COLORS = [
+  { name: "bg-indigo-600", label: "Indigo" },
+  { name: "bg-emerald-600", label: "Emerald" },
+  { name: "bg-violet-600", label: "Violet" },
+  { name: "bg-rose-600", label: "Rose" },
+  { name: "bg-amber-600", label: "Amber" },
+  { name: "bg-sky-600", label: "Sky" },
+  { name: "bg-orange-600", label: "Orange" },
+];
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Admin",
+  member: "Member",
+  viewer: "Viewer",
+};
+
+function WorkspaceSettings() {
+  const {
+    workspaces,
+    activeWorkspaceId,
+    updateWorkspace,
+    getWorkspaceRole,
+    changeWorkspaceMemberRole,
+  } = useWorkspaceStore();
+
+  const ws = workspaces.find((w) => w.id === activeWorkspaceId);
+  const isAdmin = getWorkspaceRole() === "admin";
+  const [nameValue, setNameValue] = useState(ws?.name ?? "");
+  const [saved, setSaved] = useState(false);
+
+  const members = SEED_WORKSPACE_MEMBERS.filter(
+    (m) => m.workspaceId === activeWorkspaceId
+  );
+
+  if (!ws) return null;
+
+  const handleSave = () => {
+    updateWorkspace(ws.id, { name: nameValue });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  return (
+    <div className="space-y-10">
+      {/* General */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">
+          General
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1.5">
+              Workspace Name
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                disabled={!isAdmin}
+                className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-400"
+              />
+              {isAdmin && (
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-500 transition-colors"
+                >
+                  {saved ? "Saved" : "Save"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Logo color */}
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1.5">
+              Logo Color
+            </label>
+            <div className="flex gap-2">
+              {LOGO_COLORS.map((c) => (
+                <button
+                  key={c.name}
+                  type="button"
+                  disabled={!isAdmin}
+                  onClick={() => isAdmin && updateWorkspace(ws.id, { logoColor: c.name })}
+                  className={cn(
+                    "w-7 h-7 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                    c.name,
+                    ws.logoColor === c.name
+                      ? "ring-2 ring-offset-2 ring-offset-white ring-slate-800"
+                      : ""
+                  )}
+                  title={c.label}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Plan */}
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1.5">Plan</label>
+            <span className="inline-flex items-center px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-200 capitalize">
+              {ws.plan}
+            </span>
+          </div>
+
+          {/* Visibility */}
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1.5">
+              Workspace Visibility
+            </label>
+            <VisibilityToggle
+              value={ws.visibility}
+              onChange={(v: Visibility) => isAdmin && updateWorkspace(ws.id, { visibility: v })}
+              disabled={!isAdmin}
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              {ws.visibility === "public"
+                ? "Anyone with the link can view this workspace."
+                : "Only invited members can access this workspace."}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Members */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">
+            Members ({members.length})
+          </h3>
+          {isAdmin && (
+            <button className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-500 font-medium">
+              <Plus className="w-3.5 h-3.5" />
+              Invite member
+            </button>
+          )}
+        </div>
+        <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden">
+          {members.map((m) => {
+            const user = USERS.find((u) => u.id === m.userId);
+            if (!user) return null;
+            const isSelf = m.userId === "user-kevin";
+            return (
+              <div key={m.userId} className="flex items-center gap-3 px-4 py-3 bg-white">
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0", user.avatarColor)}>
+                  {user.avatarInitial}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">
+                    {user.displayName} {isSelf && <span className="text-slate-400 font-normal text-xs">(you)</span>}
+                  </p>
+                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                </div>
+                {isAdmin && !isSelf ? (
+                  <select
+                    value={m.role}
+                    onChange={(e) => changeWorkspaceMemberRole(m.userId, e.target.value as WorkspaceRole)}
+                    className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="member">Member</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                ) : (
+                  <span className="text-xs text-slate-500 capitalize">{ROLE_LABEL[m.role]}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Danger zone — admin only */}
+      {isAdmin && (
+        <div className="space-y-4 pt-4 border-t border-slate-200">
+          <h3 className="text-sm font-semibold text-red-600 uppercase tracking-wider">
+            Danger Zone
+          </h3>
+          <div className="flex items-center justify-between px-4 py-3 border border-red-200 rounded-xl bg-red-50">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Delete Workspace</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Permanently delete this workspace and all its data.
+              </p>
+            </div>
+            <button
+              disabled
+              title="Only available on Enterprise plan"
+              className="px-3 py-1.5 border border-red-300 text-red-500 text-xs rounded-lg opacity-50 cursor-not-allowed"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Teams Settings ───────────────────────────────────────────────────────────
+
+const TEAM_COLOR_BG: Record<string, string> = {
+  emerald: "bg-emerald-500", violet: "bg-violet-500", rose: "bg-rose-500",
+  amber: "bg-amber-500", indigo: "bg-indigo-500", sky: "bg-sky-500", orange: "bg-orange-500",
+};
+
+function TeamIconEl({ name, className }: { name: string; className?: string }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Icon = (LucideIcons as any)[name];
+  if (!Icon) return null;
+  return <Icon className={className} />;
+}
+
+const TEAM_COLOR_OPTIONS = [
+  { name: "emerald", bg: "bg-emerald-500" },
+  { name: "violet",  bg: "bg-violet-500" },
+  { name: "rose",    bg: "bg-rose-500" },
+  { name: "amber",   bg: "bg-amber-500" },
+  { name: "indigo",  bg: "bg-indigo-500" },
+  { name: "sky",     bg: "bg-sky-500" },
+  { name: "orange",  bg: "bg-orange-500" },
+];
+
+function TeamsSettings() {
+  const {
+    teams,
+    teamMembers,
+    getWorkspaceRole,
+    updateTeam,
+    updateTeamVisibility,
+    deleteTeam,
+    removeTeamMember,
+    changeTeamMemberRole,
+    activeWorkspaceId,
+  } = useWorkspaceStore();
+
+  const isAdmin = getWorkspaceRole() === "admin";
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+
+  const wsTeams = teams.filter((t) => t.workspaceId === activeWorkspaceId);
+
+  const startEdit = (teamId: string) => {
+    const team = teams.find((t) => t.id === teamId);
+    if (!team) return;
+    setEditName(team.name);
+    setEditDesc(team.description);
+    setEditingTeamId(teamId);
+  };
+
+  const saveEdit = (teamId: string) => {
+    updateTeam(teamId, { name: editName, description: editDesc });
+    setEditingTeamId(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">{wsTeams.length} team{wsTeams.length !== 1 ? "s" : ""}</p>
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-500 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Create Team
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {wsTeams.map((team) => {
+          const memberCount = teamMembers.filter((m) => m.teamId === team.id).length;
+          const isEditing = editingTeamId === team.id;
+          const myTeamRole = teamMembers.find(
+            (m) => m.teamId === team.id && m.userId === "user-kevin"
+          )?.role;
+          const canManage = isAdmin || myTeamRole === "lead";
+
+          return (
+            <div
+              key={team.id}
+              className="border border-slate-200 rounded-xl bg-white overflow-hidden"
+            >
+              {/* Card header */}
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", TEAM_COLOR_BG[team.color] ?? "bg-slate-500")}>
+                  <TeamIconEl name={team.icon} className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{team.name}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{memberCount} member{memberCount !== 1 ? "s" : ""}</p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Visibility toggle — inline */}
+                  {canManage ? (
+                    <VisibilityToggle
+                      value={team.visibility}
+                      onChange={(v: Visibility) => updateTeamVisibility(team.id, v)}
+                      size="sm"
+                    />
+                  ) : (
+                    <span className="text-[10px] text-slate-400 capitalize">{team.visibility}</span>
+                  )}
+                  {canManage && (
+                    <button
+                      onClick={() => isEditing ? setEditingTeamId(null) : startEdit(team.id)}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors text-xs"
+                    >
+                      {isEditing ? "✕" : "Edit"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Edit panel */}
+              {isEditing && (
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 space-y-3">
+                  <div>
+                    <label className="text-[10px] font-medium text-slate-500 block mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-slate-500 block mb-1">Description</label>
+                    <textarea
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      rows={2}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                    />
+                  </div>
+                  {/* Color */}
+                  <div>
+                    <label className="text-[10px] font-medium text-slate-500 block mb-1">Color</label>
+                    <div className="flex gap-1.5">
+                      {TEAM_COLOR_OPTIONS.map((c) => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() => updateTeam(team.id, { color: c.name })}
+                          className={cn(
+                            "w-5 h-5 rounded-full transition-all",
+                            c.bg,
+                            team.color === c.name ? "ring-2 ring-offset-1 ring-offset-slate-50 ring-slate-800" : ""
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete team "${team.name}"?`)) {
+                          deleteTeam(team.id);
+                          setEditingTeamId(null);
+                        }
+                      }}
+                      className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                    >
+                      Delete team
+                    </button>
+                    <button
+                      onClick={() => saveEdit(team.id)}
+                      className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-500 transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Members list */}
+              <div className="px-4 py-3 space-y-2">
+                {teamMembers
+                  .filter((m) => m.teamId === team.id)
+                  .map((m) => {
+                    const user = USERS.find((u) => u.id === m.userId);
+                    if (!user) return null;
+                    return (
+                      <div key={m.userId} className="flex items-center gap-2">
+                        <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-[10px] flex-shrink-0", user.avatarColor)}>
+                          {user.avatarInitial}
+                        </div>
+                        <span className="flex-1 text-xs text-slate-700 truncate">{user.displayName}</span>
+                        {canManage ? (
+                          <select
+                            value={m.role}
+                            onChange={(e) => changeTeamMemberRole(team.id, m.userId, e.target.value as TeamRole)}
+                            disabled={m.userId === "user-kevin"}
+                            className="text-[10px] border border-slate-200 rounded px-1.5 py-0.5 bg-white text-slate-500 focus:outline-none disabled:opacity-50"
+                          >
+                            <option value="lead">Lead</option>
+                            <option value="member">Member</option>
+                          </select>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 capitalize">{m.role}</span>
+                        )}
+                        {canManage && m.userId !== "user-kevin" && (
+                          <button
+                            onClick={() => removeTeamMember(team.id, m.userId)}
+                            className="text-slate-400 hover:text-red-400 transition-colors text-[10px]"
+                            title="Remove"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                {canManage && (
+                  <button
+                    onClick={() => setShowAddMemberModal(team.id)}
+                    className="flex items-center gap-1 text-[11px] text-indigo-500 hover:text-indigo-600 transition-colors mt-1"
+                  >
+                    <Plus className="w-3 h-3" /> Add member
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {showCreateModal && (
+        <CreateTeamModal onClose={() => setShowCreateModal(false)} />
+      )}
+      {showAddMemberModal && (
+        <TeamMemberModal
+          teamId={showAddMemberModal}
+          onClose={() => setShowAddMemberModal(null)}
+        />
+      )}
     </div>
   );
 }
