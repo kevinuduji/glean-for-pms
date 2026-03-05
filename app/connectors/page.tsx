@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, ExternalLink, X, CheckCheck } from "lucide-react";
+import { CheckCircle2, Clock, X, CheckCheck } from "lucide-react";
 import ToolLogo, { Tool } from "@/components/ToolLogo";
 import {
   LineChart,
@@ -34,7 +34,7 @@ import { slackChannels, recentMessages } from "@/lib/mock-data/slack";
 import { jiraIssues, jiraEpics, currentSprint } from "@/lib/mock-data/jira";
 import { notionDocs, notionDatabases } from "@/lib/mock-data/notion";
 
-import { activeConnectors, comingSoon } from "@/lib/mock-data/connectors";
+import { activeConnectors } from "@/lib/mock-data/connectors";
 
 // ─── Amplitude Viewer ────────────────────────────────────────────────────────
 
@@ -1483,50 +1483,6 @@ export default function ConnectorsPage() {
                   <Clock className="w-3 h-3" />
                   <span>Synced {connector.lastSynced}</span>
                 </div>
-                <button
-                  onClick={() => setSelectedConnector(connector.id)}
-                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 transition-colors hover:underline"
-                >
-                  View Data
-                  <ExternalLink className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Coming soon */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-            Coming Soon
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-4 gap-4">
-          {comingSoon.map((integration) => (
-            <div
-              key={integration.name}
-              className="bg-white rounded-xl border border-zinc-200 shadow-sm p-4 opacity-60"
-            >
-              <div className="flex flex-col items-center text-center gap-2">
-                <ToolLogo
-                  tool={integration.name.toLowerCase() as Tool}
-                  size="lg"
-                  className="w-10 h-10 rounded-xl"
-                />
-                <div>
-                  <h3 className="font-semibold text-slate-700 text-sm">
-                    {integration.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {integration.description}
-                  </p>
-                </div>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                  Coming Soon
-                </span>
               </div>
             </div>
           ))}

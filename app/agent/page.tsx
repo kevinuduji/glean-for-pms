@@ -3,19 +3,13 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Send,
-  Sparkles,
-  RotateCcw,
-  Globe,
-  Shield,
-  Zap,
-  Search,
-} from "lucide-react";
+import { Send, RotateCcw, Globe, Shield, Zap, Search } from "lucide-react";
 import { useAgentStore } from "@/lib/store";
 import QuickQueryPills from "@/components/QuickQueryPills";
 import AgentWorkflowPanel from "@/components/AgentWorkflowPanel";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import logo from "@/assets/Probe Logo.png";
 
 import ConnectorsSidebar from "@/components/ConnectorsSidebar";
 
@@ -118,7 +112,7 @@ function AgentPageInner() {
   return (
     <div className="flex h-full overflow-hidden bg-white">
       {/* Left panel: Connectors */}
-      <div className="xl:w-[240px] lg:w-[220px] w-[220px] flex-shrink-0">
+      <div className="xl:w-[240px] lg:w-[220px] w-[220px] flex-shrink-0 h-full overflow-hidden">
         <ConnectorsSidebar />
       </div>
 
@@ -179,16 +173,22 @@ function AgentPageInner() {
                   <div className="flex items-center gap-3">
                     <div
                       className={cn(
-                        "w-7 h-7 rounded-sm flex items-center justify-center text-xs font-bold shadow-sm",
+                        "w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shadow-sm",
                         msg.role === "user"
-                          ? "bg-slate-200 text-slate-700"
-                          : "bg-indigo-600 text-white",
+                          ? "bg-slate-200 text-slate-700 font-bold"
+                          : "bg-white border border-slate-100",
                       )}
                     >
                       {msg.role === "user" ? (
                         "U"
                       ) : (
-                        <Sparkles className="w-3.5 h-3.5" />
+                        <Image
+                          src={logo}
+                          alt="Probe Logo"
+                          width={28}
+                          height={28}
+                          className="w-full h-full object-cover"
+                        />
                       )}
                     </div>
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -245,8 +245,14 @@ function AgentPageInner() {
                 animate={{ opacity: 1 }}
                 className="flex items-center gap-2 pt-4"
               >
-                <div className="w-7 h-7 rounded-sm bg-indigo-600 flex items-center justify-center text-white shadow-md animate-pulse">
-                  <Sparkles className="w-3.5 h-3.5" />
+                <div className="w-7 h-7 rounded-full overflow-hidden bg-white flex items-center justify-center shadow-md animate-pulse border border-slate-100">
+                  <Image
+                    src={logo}
+                    alt="Probe Logo"
+                    width={28}
+                    height={28}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="flex items-center gap-1.5 px-4 py-2">
                   <span

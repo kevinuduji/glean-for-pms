@@ -25,7 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import ToolLogo, { Tool } from "@/components/ToolLogo";
 
-import { activeConnectors, comingSoon } from "@/lib/mock-data/connectors";
+import { activeConnectors } from "@/lib/mock-data/connectors";
 
 type SettingsSection =
   | "account"
@@ -545,7 +545,6 @@ function UsageSettings() {
 function ConnectorsSettings() {
   const allConnectors = [
     ...activeConnectors.map((i) => ({ ...i, status: "Connected" })),
-    ...comingSoon.map((i) => ({ ...i, status: "Coming Soon" })),
   ];
 
   return (

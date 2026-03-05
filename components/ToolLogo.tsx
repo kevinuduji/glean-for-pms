@@ -1,6 +1,6 @@
-import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
+import logo from "@/assets/Probe Logo.png";
 
 export type Tool =
   | "amplitude"
@@ -26,6 +26,7 @@ const toolConfig: Record<
     color: string;
     letter?: string;
     Icon?: React.ComponentType<{ className?: string }>;
+    logo?: StaticImageData;
     slug?: string;
     hex?: string;
     customUrl?: string; // For tools not in SimpleIcons
@@ -123,9 +124,9 @@ const toolConfig: Record<
   },
   agent: {
     label: "Agent",
-    bg: "bg-indigo-100",
+    bg: "bg-white",
     color: "text-indigo-700",
-    Icon: Sparkles,
+    logo: logo,
   },
 };
 
@@ -148,9 +149,9 @@ export default function ToolLogo({
   };
 
   const iconSizes = {
-    sm: 12,
-    md: 14,
-    lg: 24,
+    sm: 20,
+    md: 24,
+    lg: 40,
   };
 
   const sizeClass = sizeClasses[size];
@@ -163,10 +164,19 @@ export default function ToolLogo({
         sizeClass,
         config.bg,
         config.color,
+        tool === "agent" && "rounded-full",
         className,
       )}
     >
-      {config.Icon ? (
+      {config.logo ? (
+        <Image
+          src={config.logo}
+          alt={config.label}
+          width={iconSize}
+          height={iconSize}
+          className="w-full h-full object-cover"
+        />
+      ) : config.Icon ? (
         <config.Icon
           className={
             size === "lg"

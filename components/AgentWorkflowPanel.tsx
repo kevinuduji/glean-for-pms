@@ -3,9 +3,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useAgentStore } from "@/lib/store";
 import ToolLogo, { Tool } from "./ToolLogo";
-import { CheckCircle2, Sparkles, ChevronDown } from "lucide-react";
+import { CheckCircle2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import Image from "next/image";
+import logo from "@/assets/Probe Logo.png";
 
 export default function AgentWorkflowPanel() {
   const { activeScript, stepStatuses, isRunning, isComplete, elapsedTime } =
@@ -24,8 +26,14 @@ export default function AgentWorkflowPanel() {
   if (!activeScript && !isRunning) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center px-8 bg-slate-50/50">
-        <div className="w-16 h-16 rounded-3xl bg-white shadow-xl shadow-slate-200/50 flex items-center justify-center mb-6 border border-slate-100 rotate-12 rotate-[-6deg]">
-          <Sparkles className="w-8 h-8 text-indigo-500 animate-pulse" />
+        <div className="w-16 h-16 rounded-full overflow-hidden bg-white shadow-xl shadow-slate-200/50 flex items-center justify-center mb-6 border border-slate-100 rotate-[-6deg]">
+          <Image
+            src={logo}
+            alt="Probe Logo"
+            width={64}
+            height={64}
+            className="w-full h-full object-cover"
+          />
         </div>
         <h3 className="text-slate-900 font-bold text-lg mb-2 tracking-tight">
           Search Flow
@@ -185,8 +193,14 @@ export default function AgentWorkflowPanel() {
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center gap-4 pl-0.5"
             >
-              <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white ring-8 ring-white shadow-xl">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-white flex items-center justify-center ring-8 ring-white shadow-xl border border-slate-100">
+                <Image
+                  src={logo}
+                  alt="Probe Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="bg-slate-900 text-white px-4 py-2 rounded-2xl text-xs font-bold shadow-lg shadow-slate-900/10">
                 Synthesis Engine Locked

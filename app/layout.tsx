@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Probe",
   description: "AI-powered PM intelligence platform",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -20,7 +23,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-slate-50`}>
         <div className="flex h-full">
           <Sidebar />
-          <main className="flex-1 overflow-hidden">{children}</main>
+          <main className="flex-1 overflow-auto">{children}</main>
         </div>
       </body>
     </html>

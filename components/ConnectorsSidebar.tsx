@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 const ALL_CONNECTORS: { id: string; name: string; tool: Tool }[] = [
   { id: "amplitude", name: "Amplitude", tool: "amplitude" },
+  { id: "datadog", name: "DataDog", tool: "datadog" },
   { id: "mixpanel", name: "Mixpanel", tool: "mixpanel" },
   { id: "posthog", name: "PostHog", tool: "posthog" },
   { id: "sentry", name: "Sentry", tool: "sentry" },

@@ -6,7 +6,6 @@ import {
   Sparkles,
   BarChart3,
   FlaskConical,
-  Play,
   Plug,
   Settings,
   Search,
@@ -18,10 +17,12 @@ import {
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
+import Image from "next/image";
+import logo from "@/assets/Probe Logo.png";
+
 const navItems = [
   { href: "/agent", label: "Agent", icon: Sparkles },
   { href: "/experiments", label: "Experiments", icon: FlaskConical },
-  { href: "/sessions", label: "Sessions", icon: Play },
   { href: "/insights", label: "Insight", icon: BarChart3 },
   { href: "/retrospective", label: "Retrospective", icon: GitMerge },
   { href: "/recommendations", label: "Recommendations", icon: Lightbulb },
@@ -57,16 +58,28 @@ export default function Sidebar() {
             isCollapsed && "hidden",
           )}
         >
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
+          <div className="w-7 h-7 rounded-full overflow-hidden bg-white flex items-center justify-center">
+            <Image
+              src={logo}
+              alt="Probe Logo"
+              width={28}
+              height={28}
+              className="w-full h-full object-cover"
+            />
           </div>
           <span className="text-white font-semibold text-[13px] tracking-tight text-nowrap">
             Probe
           </span>
         </Link>
         {isCollapsed && (
-          <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
+            <Image
+              src={logo}
+              alt="Probe Logo"
+              width={36}
+              height={36}
+              className="w-full h-full object-cover"
+            />
           </div>
         )}
         <button

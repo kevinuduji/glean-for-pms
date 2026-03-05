@@ -14,6 +14,20 @@ export const activeConnectors = [
     ],
   },
   {
+    id: "datadog",
+    name: "DataDog",
+    description: "Advanced infrastructure observability and APM",
+    bg: "bg-purple-100",
+    color: "text-purple-700",
+    letter: "D",
+    lastSynced: "2 minutes ago",
+    stats: [
+      { label: "Dashboard", value: "12" },
+      { label: "Monitors", value: "45" },
+      { label: "Services", value: "8" },
+    ],
+  },
+  {
     id: "mixpanel",
     name: "Mixpanel",
     description: "User journey analytics and conversion funnels",
@@ -127,37 +141,4 @@ export const activeConnectors = [
   },
 ];
 
-export const comingSoon = [
-  {
-    id: "datadog",
-    name: "Datadog",
-    description: "Advanced infrastructure observability",
-    bg: "bg-slate-100",
-    color: "text-slate-400",
-    letter: "D",
-  },
-  {
-    id: "linear",
-    name: "Linear",
-    description: "Engineering-native issue tracking",
-    bg: "bg-slate-100",
-    color: "text-slate-400",
-    letter: "Li",
-  },
-  {
-    id: "figma",
-    name: "Figma",
-    description: "Design files and prototype links",
-    bg: "bg-slate-100",
-    color: "text-slate-400",
-    letter: "Fi",
-  },
-  {
-    id: "intercom",
-    name: "Intercom",
-    description: "Support tickets and user feedback",
-    bg: "bg-slate-100",
-    color: "text-slate-400",
-    letter: "In",
-  },
-];
+
