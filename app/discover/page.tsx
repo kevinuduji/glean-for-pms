@@ -98,7 +98,7 @@ const contextTypeConfig: Record<
 > = {
   retrospective: {
     icon: GitMerge,
-    label: "Retro",
+    label: "Product History",
     color: "text-indigo-600 bg-indigo-50",
   },
   incident: {

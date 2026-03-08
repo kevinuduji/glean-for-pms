@@ -23,7 +23,7 @@ const navItems = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/agent", label: "Agent", icon: Sparkles },
   { href: "/experiments", label: "Experiments", icon: FlaskConical },
-  { href: "/retrospective", label: "Retrospective", icon: GitMerge },
+  { href: "/product-history", label: "Product History", icon: GitMerge },
   { href: "/discover", label: "Discover", icon: Search },
 ];
 
