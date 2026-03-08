@@ -33,9 +33,6 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useWorkspaceStore } from "@/lib/workspace-store";
-import TeamFilterBar from "@/components/TeamFilterBar";
-import TeamBadge from "@/components/TeamBadge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1719,14 +1716,6 @@ export default function ExperimentsPage() {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [sortBy] = useState<SortBy>("newest");
   const [allExperiments, setAllExperiments] = useState(experiments);
-  const [teamFilter, setTeamFilter] = useState<string | null>(null);
-  const [folderFilter, setFolderFilter] = useState<string | null>(null);
-
-  const { activeTeamId, getContentFolder, folderItems } = useWorkspaceStore();
-
-  // Sync with sidebar active team
-  useState(() => { if (activeTeamId) setTeamFilter(activeTeamId); });
-
   const { agentState, runLocalScript, resetAgent } = useLocalAgent();
 
   const handleAskAgent = useCallback(
@@ -1749,25 +1738,7 @@ export default function ExperimentsPage() {
         e.primaryMetric.toLowerCase().includes(search.toLowerCase()) ||
         e.area.toLowerCase().includes(search.toLowerCase());
       const matchFilter = filter === "all" || e.status === filter;
-      // Team / folder filter
-      let matchTeam = true;
-      if (teamFilter || folderFilter) {
-        const folder = getContentFolder(e.id, "experiment");
-        if (folderFilter) {
-          matchTeam = folder?.id === folderFilter;
-        } else if (teamFilter) {
-          matchTeam = folder
-            ? folderItems.some(
-                (fi) =>
-                  fi.contentId === e.id &&
-                  fi.contentType === "experiment" &&
-                  fi.folderId === folder.id
-              ) &&
-              folder.teamId === teamFilter
-            : false;
-        }
-      }
-      return matchSearch && matchFilter && matchTeam;
+      return matchSearch && matchFilter;
     })
     .sort((a, b) => {
       if (sortBy === "newest")
@@ -1931,17 +1902,6 @@ export default function ExperimentsPage() {
                     ),
                   )}
                 </div>
-
-                {/* Team filter */}
-                <div className="mt-3">
-                  <TeamFilterBar
-                    contentType="experiment"
-                    selectedTeamId={teamFilter}
-                    selectedFolderId={folderFilter}
-                    onTeamChange={setTeamFilter}
-                    onFolderChange={setFolderFilter}
-                  />
-                </div>
               </div>
 
               {/* Experiment List */}
@@ -1993,7 +1953,6 @@ export default function ExperimentsPage() {
                           <p className="text-[10px] text-slate-400 truncate mt-0.5">
                             {exp.primaryMetric}
                           </p>
-                          <TeamBadge contentId={exp.id} contentType="experiment" className="mt-1" />
                         </div>
                       </button>
                     ))}

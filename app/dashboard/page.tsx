@@ -42,9 +42,7 @@ export default function DashboardPage() {
           >
             <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-4 tracking-tight leading-tight">
               Make Data-Driven Decisions{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
-                Faster
-              </span>
+              <span className="text-indigo-600">Faster</span>
             </h1>
 
             <p className="text-xl text-slate-500 mb-12 max-w-2xl mx-auto leading-relaxed">

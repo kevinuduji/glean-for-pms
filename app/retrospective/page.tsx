@@ -24,8 +24,6 @@ import {
 } from "@/lib/mock-data/retrospective";
 import ToolLogo from "@/components/ToolLogo";
 import { cn } from "@/lib/utils";
-import { useWorkspaceStore } from "@/lib/workspace-store";
-import { SEED_TEAMS } from "@/lib/mock-data/workspace";
 
 // ─── Verdict config ───────────────────────────────────────────────────────────
 
@@ -261,7 +259,7 @@ function FeatureCard({
         </span>
       </div>
       <p className="text-xs text-slate-500 mb-2">
-        <RetroTeamChip owningTeam={feature.owningTeam} /> · {feature.shipDateRelative}
+        <span>{feature.owningTeam}</span> · {feature.shipDateRelative}
       </p>
       <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
         {feature.originalGoal}
@@ -621,33 +619,6 @@ function NoResults({ onClear }: { onClear: () => void }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const COLOR_DOT: Record<string, string> = {
-  emerald: "bg-emerald-500", violet: "bg-violet-500", rose: "bg-rose-500",
-  amber: "bg-amber-500", indigo: "bg-indigo-500", sky: "bg-sky-500", orange: "bg-orange-500",
-};
-
-// Small chip that shows team color dot + name if the owning team matches a workspace team
-function RetroTeamChip({ owningTeam }: { owningTeam: string }) {
-  const wsTeam = SEED_TEAMS.find(
-    (t) => t.name.toLowerCase() === owningTeam.toLowerCase()
-  );
-  if (!wsTeam) return <span>{owningTeam}</span>;
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span className={cn("w-1.5 h-1.5 rounded-full inline-block", COLOR_DOT[wsTeam.color] ?? "bg-slate-400")} />
-      {owningTeam}
-    </span>
-  );
-}
-
-// Derive a workspace team ID from an owningTeam string (plain name match)
-function owningTeamToId(owningTeam: string): string | null {
-  const match = SEED_TEAMS.find(
-    (t) => t.name.toLowerCase() === owningTeam.toLowerCase()
-  );
-  return match?.id ?? null;
-}
-
 export default function RetrospectivePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -657,8 +628,6 @@ export default function RetrospectivePage() {
   const [sortBy, setSortBy] = useState<
     "date-desc" | "date-asc" | "name" | "verdict"
   >("date-desc");
-
-  const { activeTeamId } = useWorkspaceStore();
 
   const teams = useMemo(() => {
     const t = Array.from(
@@ -672,11 +641,6 @@ export default function RetrospectivePage() {
     let result = retroFeatures.filter((f) => {
       if (verdictFilter !== "all" && f.verdict !== verdictFilter) return false;
       if (teamFilter !== "All" && f.owningTeam !== teamFilter) return false;
-      // Workspace team filter (from sidebar selection)
-      if (activeTeamId) {
-        const featureTeamId = owningTeamToId(f.owningTeam);
-        if (featureTeamId !== activeTeamId) return false;
-      }
       if (q) {
         const haystack = [
           f.name,
