@@ -115,7 +115,7 @@ const emptyAgentState: LocalAgentState = {
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────────
 
-const mockActiveExperiments: Experiment[] = [
+export const mockActiveExperiments: Experiment[] = [
   {
     id: "exp-1",
     name: "Social Proof on Signup Page",
@@ -224,7 +224,7 @@ const mockActiveExperiments: Experiment[] = [
   },
 ];
 
-const mockExperimentQueue: Experiment[] = [
+export const mockExperimentQueue: Experiment[] = [
   {
     id: "queue-1",
     name: "Onboarding Tutorial Redesign",
@@ -256,7 +256,7 @@ const mockExperimentQueue: Experiment[] = [
   },
 ];
 
-const mockExperimentIdeas: ExperimentIdea[] = [
+export const mockExperimentIdeas: ExperimentIdea[] = [
   {
     id: "idea-1",
     title: "Email Subject Line Optimization",
@@ -289,7 +289,7 @@ const mockExperimentIdeas: ExperimentIdea[] = [
   },
 ];
 
-const mockArchivedExperiments: Experiment[] = [
+export const mockArchivedExperiments: Experiment[] = [
   {
     id: "archive-1",
     name: "Social Proof on Signup Page",

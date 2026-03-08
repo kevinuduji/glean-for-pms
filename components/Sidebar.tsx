@@ -16,9 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-import Image from "next/image";
-import logo from "@/assets/Probe Logo.png";
-
 const navItems = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/agent", label: "Agent", icon: Sparkles },
@@ -43,50 +40,16 @@ export default function Sidebar() {
         isCollapsed ? "w-16" : "xl:w-56 lg:w-52 w-52",
       )}
     >
-      {/* Logo & Toggle */}
+      {/* Sidebar Toggle */}
       <div
         className={cn(
-          "px-4 pt-4 pb-2 flex items-center justify-between",
-          isCollapsed && "px-0 justify-center flex-col gap-4",
+          "px-4 pt-4 pb-2 flex items-center",
+          isCollapsed ? "justify-center" : "justify-end",
         )}
       >
-        <Link
-          href="/dashboard"
-          className={cn(
-            "flex items-center gap-2.5 hover:opacity-80 transition-opacity",
-            isCollapsed && "hidden",
-          )}
-        >
-          <div className="w-7 h-7 rounded-full overflow-hidden bg-white flex items-center justify-center">
-            <Image
-              src={logo}
-              alt="Probe Logo"
-              width={28}
-              height={28}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <span className="text-white font-semibold text-[13px] tracking-tight text-nowrap">
-            Probe
-          </span>
-        </Link>
-        {isCollapsed && (
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-white flex items-center justify-center">
-            <Image
-              src={logo}
-              alt="Probe Logo"
-              width={36}
-              height={36}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn(
-            "p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors",
-            isCollapsed && "mt-2",
-          )}
+          className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
           title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (
@@ -96,19 +59,6 @@ export default function Sidebar() {
           )}
         </button>
       </div>
-
-      {/* Search */}
-      <div className={cn("px-3 pb-2", isCollapsed && "hidden")}>
-        <button className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 text-xs hover:bg-slate-700 transition-colors">
-          <Search className="w-3.5 h-3.5" />
-          <span className="flex-1 text-left">Search...</span>
-          <span className="text-slate-600 text-xs font-mono">⌘K</span>
-        </button>
-      </div>
-
-      <div
-        className={cn("h-px bg-slate-800 mx-3 mb-2", isCollapsed && "mx-2")}
-      />
 
       {/* Nav items - Scrollable */}
       <nav
