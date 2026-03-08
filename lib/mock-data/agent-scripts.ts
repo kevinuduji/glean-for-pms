@@ -119,7 +119,7 @@ Root cause: payments-service v2.4.1 deployed Dec 1 at 13:58 UTC introduced a lat
 
 Expected recovery: Checkout completion should return to baseline within 1 deploy cycle once the rollback is live.
 
-I've flagged this in your Insights feed with a P0 label.`,
+I've flagged this in your Recommendations feed with a P0 label.`,
     relatedCardTypes: ['prometheus-latency', 'sentry-errors', 'amplitude-checkout'],
   },
   {

@@ -46,7 +46,7 @@ export default function DashboardPage() {
             </h1>
 
             <p className="text-xl text-slate-500 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Gather insights from Amplitude, PostHog, GitHub, and Sentry in
+              Gather data from Amplitude, PostHog, GitHub, and Sentry in
               seconds.
             </p>
 

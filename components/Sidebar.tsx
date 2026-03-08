@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Sparkles,
-  BarChart3,
   FlaskConical,
   Plug,
   Settings,
@@ -24,7 +23,6 @@ const navItems = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/agent", label: "Agent", icon: Sparkles },
   { href: "/experiments", label: "Experiments", icon: FlaskConical },
-  { href: "/insights", label: "Insight", icon: BarChart3 },
   { href: "/retrospective", label: "Retrospective", icon: GitMerge },
   { href: "/discover", label: "Discover", icon: Search },
 ];

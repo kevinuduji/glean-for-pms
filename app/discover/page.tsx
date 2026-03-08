@@ -1328,8 +1328,8 @@ export default function RecommendationsPage() {
         <div className="px-8 pt-8 pb-4 border-b border-slate-200 bg-white flex-shrink-0">
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Discover</h1>
           <p className="text-sm text-slate-500">
-            What should I work on next? AI-powered insights from across your
-            product stack.
+            What should I work on next? AI-powered recommendations from across
+            your product stack.
           </p>
 
           <div className="mt-8 flex items-center justify-between">

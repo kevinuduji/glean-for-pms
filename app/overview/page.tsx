@@ -16,9 +16,6 @@ import {
   CartesianGrid,
 } from "recharts";
 import {
-  TrendingUp,
-  Target,
-  Lightbulb,
   ArrowRight,
   ArrowUpRight,
   ArrowDownRight,
@@ -27,16 +24,13 @@ import {
   DollarSign,
   Share2,
   Download,
-  GitMerge,
-  Zap,
-  AlertTriangle,
   Activity,
   Gauge,
   MousePointerClick,
   Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { InsightCard } from "@/components/ui/InsightCard";
+
 import { ActionButton } from "@/components/ui/ActionButton";
 
 // ─── Mock Data: Product Health ──────────────────────────────────────────────────
@@ -187,93 +181,12 @@ function ChartCard({
   );
 }
 
-// ─── Learning Insights Data ─────────────────────────────────────────────────────
-
-interface LearningInsight {
-  id: string;
-  title: string;
-  description: string;
-  type: "pattern" | "recommendation" | "warning";
-  confidence: number;
-  relatedExperiments: string[];
-  suggestedActions: string[];
-}
-
-const mockLearningInsights: LearningInsight[] = [
-  {
-    id: "insight-1",
-    title: "Social Proof Pattern Success",
-    description:
-      "Your last 3 social proof experiments all exceeded targets. This pattern suggests strong user trust concerns that social validation addresses effectively.",
-    type: "pattern",
-    confidence: 94,
-    relatedExperiments: ["result-1", "exp-social-2", "exp-social-3"],
-    suggestedActions: [
-      "Apply social proof to other conversion points",
-      "Test industry-specific testimonials",
-      "Implement real-time user activity indicators",
-    ],
-  },
-  {
-    id: "insight-2",
-    title: "Mobile Optimization Opportunity",
-    description:
-      "Mobile conversion rates are consistently 40% lower than desktop across all experiments. This represents a significant growth opportunity.",
-    type: "recommendation",
-    confidence: 87,
-    relatedExperiments: ["result-3", "exp-mobile-1"],
-    suggestedActions: [
-      "Prioritize mobile-first experiment design",
-      "Test mobile-specific user flows",
-      "Investigate mobile performance issues",
-    ],
-  },
-  {
-    id: "insight-3",
-    title: "Checkout Flow Complexity Warning",
-    description:
-      "Experiments that simplify checkout flows have a 60% failure rate. Users may prefer more steps for high-value purchases to feel secure.",
-    type: "warning",
-    confidence: 78,
-    relatedExperiments: ["result-2", "exp-checkout-1"],
-    suggestedActions: [
-      "Focus on step optimization rather than reduction",
-      "Test progress indicators and reassurance messaging",
-      "Segment by purchase value for different flows",
-    ],
-  },
-];
-
-const insightTypeConfig = {
-  pattern: {
-    label: "Pattern Detected",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    icon: TrendingUp,
-  },
-  recommendation: {
-    label: "Recommendation",
-    color: "text-indigo-600",
-    bg: "bg-indigo-50",
-    border: "border-indigo-200",
-    icon: Lightbulb,
-  },
-  warning: {
-    label: "Warning",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    icon: AlertTriangle,
-  },
-};
+// ─── Learning Recommendations Data ─────────────────────────────────────────────
 
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
-  const [selectedTab, setSelectedTab] = useState<
-    "health" | "impact" | "insights"
-  >("health");
+  const [selectedTab, setSelectedTab] = useState<"health" | "impact">("health");
 
   const dauChange = +(((latest.dau - weekAgo.dau) / weekAgo.dau) * 100).toFixed(
     1,
@@ -295,18 +208,9 @@ export default function OverviewPage() {
     console.log("Exporting report");
   }
 
-  function handleApplyLearning(insight: LearningInsight) {
-    console.log("Applying learning:", insight.title);
-  }
-
   const tabs = [
     { id: "health" as const, label: "Product Health", count: null },
     { id: "impact" as const, label: "Business Impact", count: null },
-    {
-      id: "insights" as const,
-      label: "Learning Insights",
-      count: mockLearningInsights.length,
-    },
   ];
 
   return (
@@ -319,8 +223,7 @@ export default function OverviewPage() {
               Overview
             </h1>
             <p className="text-slate-500 mt-1">
-              Your product at a glance — health metrics, experiment impact, and
-              insights
+              Your product at a glance — health metrics and business impact
             </p>
           </div>
 
@@ -959,93 +862,6 @@ export default function OverviewPage() {
                     </ActionButton>
                   </div>
                 </div>
-              </motion.div>
-            )}
-
-            {/* ─── Learning Insights Tab ──────────────────────────────────── */}
-            {selectedTab === "insights" && (
-              <motion.div
-                key="insights"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-6"
-              >
-                {mockLearningInsights.map((insight) => {
-                  const config = insightTypeConfig[insight.type];
-
-                  return (
-                    <InsightCard
-                      key={insight.id}
-                      title={insight.title}
-                      description={insight.description}
-                      priority={
-                        insight.confidence >= 90
-                          ? "high"
-                          : insight.confidence >= 75
-                            ? "medium"
-                            : "low"
-                      }
-                      source={`Based on ${insight.relatedExperiments.length} experiments`}
-                      timestamp={`${insight.confidence}% confidence`}
-                      icon={config.icon}
-                      className="hover:shadow-lg"
-                      actions={
-                        <div className="flex items-center gap-2 w-full">
-                          <ActionButton
-                            icon={Zap}
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleApplyLearning(insight)}
-                          >
-                            Apply Learning
-                          </ActionButton>
-                          <ActionButton
-                            icon={GitMerge}
-                            variant="secondary"
-                            size="sm"
-                            onClick={() =>
-                              console.log("View related experiments")
-                            }
-                          >
-                            View Related
-                          </ActionButton>
-                        </div>
-                      }
-                    >
-                      <div className="space-y-3">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full border",
-                            config.bg,
-                            config.border,
-                            config.color,
-                          )}
-                        >
-                          <config.icon className="w-3 h-3" />
-                          {config.label}
-                        </span>
-
-                        <div>
-                          <span className="text-xs font-semibold text-slate-700 mb-2 block">
-                            Recommended Actions:
-                          </span>
-                          <div className="space-y-1">
-                            {insight.suggestedActions.map((action, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center gap-2 text-xs text-slate-600"
-                              >
-                                <Target className="w-3 h-3 text-indigo-500" />
-                                {action}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </InsightCard>
-                  );
-                })}
               </motion.div>
             )}
           </AnimatePresence>

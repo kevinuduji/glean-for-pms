@@ -565,7 +565,7 @@ function RetroReport({ feature }: { feature: RetroFeature }) {
               <span className="font-semibold text-indigo-600">
                 {feature.roadmapInfluenceCount} active recommendations
               </span>{" "}
-              in your Insights feed.
+              in your Recommendations feed.
             </p>
           </div>
         </div>
