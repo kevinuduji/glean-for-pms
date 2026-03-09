@@ -9,6 +9,7 @@ import {
   FlaskConical,
   GitMerge,
   Lightbulb,
+  Server,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ import {
 } from "@/app/experiments/page";
 import { retroFeatures } from "@/lib/mock-data/retrospective";
 import { buildUnifiedFeed } from "@/lib/mock-data/unified-feed";
+import { activeConnectors } from "@/lib/mock-data/connectors";
 
 const STATIC_SEARCH_DATA = [
   {
@@ -109,12 +111,21 @@ export default function TopNav() {
       icon: Search,
     }));
 
+    const connectors = activeConnectors.map((connector) => ({
+      id: `connector-${connector.id}`,
+      title: connector.name,
+      type: "connector",
+      url: `/connectors?connector=${connector.id}`,
+      icon: Server,
+    }));
+
     return [
       ...STATIC_SEARCH_DATA,
       ...experiments,
       ...ideas,
       ...retros,
       ...feed,
+      ...connectors,
     ];
   }, []);
 

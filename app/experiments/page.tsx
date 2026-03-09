@@ -32,6 +32,9 @@ import {
   XCircle,
   AlertTriangle,
   ArrowRight,
+  Database,
+  StickyNote,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InsightCard } from "@/components/ui/InsightCard";
@@ -46,6 +49,22 @@ interface CohortData {
   conversionRate: number;
   avgSessionDuration: string;
   primaryMetricValue: number;
+}
+
+interface DataSource {
+  name: string;
+  color: string; // tailwind bg color class for badge
+  textColor: string; // tailwind text color class
+  borderColor: string; // tailwind border color class
+  emoji: string; // icon emoji
+  tracking: string[]; // bullet points of what it tracks
+}
+
+interface ExperimentNote {
+  id: string;
+  text: string;
+  author: string;
+  createdAt: string;
 }
 
 interface Experiment {
@@ -81,6 +100,8 @@ interface Experiment {
     users?: number;
     metric?: string;
   };
+  dataSources?: DataSource[];
+  notes?: ExperimentNote[];
 }
 
 interface ExperimentIdea {
@@ -133,6 +154,39 @@ export const mockActiveExperiments: Experiment[] = [
     sampleSize: { current: 2400, target: 3200 },
     traffic: 50,
     source: "AI Recommendation from Discover",
+    dataSources: [
+      {
+        name: "PostHog",
+        color: "bg-orange-50",
+        textColor: "text-orange-700",
+        borderColor: "border-orange-200",
+        emoji: "🦔",
+        tracking: [
+          "Signup funnel conversion rate per variant",
+          "Session duration and scroll depth on signup page",
+          "Click-through rate on testimonial elements",
+        ],
+      },
+      {
+        name: "Stripe",
+        color: "bg-violet-50",
+        textColor: "text-violet-700",
+        borderColor: "border-violet-200",
+        emoji: "💳",
+        tracking: [
+          "Trial-to-paid conversion rate post-signup",
+          "Revenue attribution from new signups",
+        ],
+      },
+    ],
+    notes: [
+      {
+        id: "note-1",
+        text: "Variant B is outperforming — consider shifting more traffic to it.",
+        author: "Kevin",
+        createdAt: "2026-03-01T10:00:00Z",
+      },
+    ],
     cohorts: [
       {
         name: "Control",
@@ -173,6 +227,42 @@ export const mockActiveExperiments: Experiment[] = [
       "Fewer steps should reduce cognitive load and cart abandonment, leading to higher completion rates.",
     sampleSize: { current: 890, target: 2800 },
     traffic: 25,
+    dataSources: [
+      {
+        name: "PostHog",
+        color: "bg-orange-50",
+        textColor: "text-orange-700",
+        borderColor: "border-orange-200",
+        emoji: "🦔",
+        tracking: [
+          "Step-by-step drop-off rates in checkout funnel",
+          "Time spent per checkout step",
+          "Session recordings of abandoned checkouts",
+        ],
+      },
+      {
+        name: "Stripe",
+        color: "bg-violet-50",
+        textColor: "text-violet-700",
+        borderColor: "border-violet-200",
+        emoji: "💳",
+        tracking: [
+          "Successful payment completion rate",
+          "Payment failure and retry rates",
+        ],
+      },
+      {
+        name: "Sentry",
+        color: "bg-rose-50",
+        textColor: "text-rose-700",
+        borderColor: "border-rose-200",
+        emoji: "🛡️",
+        tracking: [
+          "JavaScript errors during checkout flow",
+          "API error rates per variant",
+        ],
+      },
+    ],
     cohorts: [
       {
         name: "Control — 4-step",
@@ -205,6 +295,31 @@ export const mockActiveExperiments: Experiment[] = [
       "Mobile users should find it easier to compare plans and select one, increasing mobile-specific conversions.",
     sampleSize: { current: 1200, target: 2000 },
     traffic: 30,
+    dataSources: [
+      {
+        name: "PostHog",
+        color: "bg-orange-50",
+        textColor: "text-orange-700",
+        borderColor: "border-orange-200",
+        emoji: "🦔",
+        tracking: [
+          "Mobile vs desktop conversion rate split",
+          "Pricing plan click-through rates on mobile",
+          "Scroll depth and plan comparison interactions",
+        ],
+      },
+      {
+        name: "GitHub",
+        color: "bg-slate-50",
+        textColor: "text-slate-700",
+        borderColor: "border-slate-300",
+        emoji: "🐙",
+        tracking: [
+          "Mobile-specific code changes (PR #412)",
+          "CSS breakpoint updates linked to variant",
+        ],
+      },
+    ],
     cohorts: [
       {
         name: "Control",
@@ -239,6 +354,27 @@ export const mockExperimentQueue: Experiment[] = [
     sampleSize: { current: 0, target: 2500 },
     traffic: 50,
     source: "Discover Hub - User Friction",
+    dataSources: [
+      {
+        name: "PostHog",
+        color: "bg-orange-50",
+        textColor: "text-orange-700",
+        borderColor: "border-orange-200",
+        emoji: "🦔",
+        tracking: ["Activation rate per cohort", "Tutorial completion rate"],
+      },
+      {
+        name: "Intercom",
+        color: "bg-blue-50",
+        textColor: "text-blue-700",
+        borderColor: "border-blue-200",
+        emoji: "💬",
+        tracking: [
+          "Support tickets from new users",
+          "Onboarding message engagement",
+        ],
+      },
+    ],
   },
   {
     id: "queue-2",
@@ -253,6 +389,19 @@ export const mockExperimentQueue: Experiment[] = [
       "Role-based personalization should surface relevant features, increasing daily return rates.",
     sampleSize: { current: 0, target: 3000 },
     traffic: 40,
+    dataSources: [
+      {
+        name: "PostHog",
+        color: "bg-orange-50",
+        textColor: "text-orange-700",
+        borderColor: "border-orange-200",
+        emoji: "🦔",
+        tracking: [
+          "Daily active usage per role segment",
+          "Feature click rates by role",
+        ],
+      },
+    ],
   },
 ];
 
@@ -294,6 +443,24 @@ export const mockArchivedExperiments: Experiment[] = [
     id: "archive-1",
     name: "Social Proof on Signup Page",
     status: "shipped",
+    dataSources: [
+      {
+        name: "PostHog",
+        color: "bg-orange-50",
+        textColor: "text-orange-700",
+        borderColor: "border-orange-200",
+        emoji: "🦔",
+        tracking: ["Signup funnel conversion rate", "Testimonial hover events"],
+      },
+      {
+        name: "Stripe",
+        color: "bg-violet-50",
+        textColor: "text-violet-700",
+        borderColor: "border-violet-200",
+        emoji: "💳",
+        tracking: ["Trial-to-paid uplift", "Revenue from shipped variant"],
+      },
+    ],
     hypothesis:
       "Adding customer testimonials will increase signup conversion by building trust and reducing hesitation.",
     primaryMetric: "signup_conversion_rate",
@@ -752,7 +919,30 @@ function ExperimentDetail({
           new Date(experiment.startDate).getTime()) /
           (1000 * 60 * 60 * 24),
       )
-    : daysRunning;
+    : 0;
+
+  // Local notes state (seeded from experiment mock data)
+  const [notes, setNotes] = useState<ExperimentNote[]>(experiment.notes ?? []);
+  const [noteInput, setNoteInput] = useState("");
+
+  function addNote() {
+    if (!noteInput.trim()) return;
+    const newNote: ExperimentNote = {
+      id: `note-${Date.now()}`,
+      text: noteInput.trim(),
+      author: "You",
+      createdAt: new Date().toISOString(),
+    };
+    setNotes((prev) => [newNote, ...prev]);
+    setNoteInput("");
+  }
+
+  function deleteNote(id: string) {
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+  }
+
+  // suppress unused var lint
+  void testDuration;
 
   const chartData = experiment.cohorts?.map((cohort) => ({
     name:
@@ -960,7 +1150,7 @@ function ExperimentDetail({
                             borderRadius: "8px",
                             boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)",
                           }}
-                          formatter={(v: any) => [
+                          formatter={(v: number | string | undefined) => [
                             v !== undefined ? `${v}%` : "—",
                             "Conversion",
                           ]}
@@ -1127,6 +1317,54 @@ function ExperimentDetail({
               </div>
             )}
 
+            {/* Data Sources */}
+            {experiment.dataSources && experiment.dataSources.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-xl p-6">
+                <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <Database className="w-4 h-4 text-indigo-500" />
+                  Data Sources
+                  <span className="ml-1 text-xs font-normal text-slate-400">
+                    — what each integration is tracking
+                  </span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {experiment.dataSources.map((ds) => (
+                    <div
+                      key={ds.name}
+                      className={cn(
+                        "rounded-xl border p-4 flex flex-col gap-3",
+                        ds.color,
+                        ds.borderColor,
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{ds.emoji}</span>
+                        <span className={cn("text-sm font-bold", ds.textColor)}>
+                          {ds.name}
+                        </span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {ds.tracking.map((item, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-xs text-slate-600"
+                          >
+                            <span
+                              className={cn(
+                                "mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0",
+                                ds.textColor.replace("text-", "bg-"),
+                              )}
+                            />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Business Impact (for shipped experiments) */}
             {experiment.businessImpact && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
@@ -1164,6 +1402,80 @@ function ExperimentDetail({
                 </div>
               </div>
             )}
+
+            {/* Notes */}
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <StickyNote className="w-4 h-4 text-amber-500" />
+                Notes
+                {notes.length > 0 && (
+                  <span className="ml-1 text-xs font-medium text-slate-400">
+                    {notes.length}
+                  </span>
+                )}
+              </h3>
+
+              {/* Add note input */}
+              <div className="flex gap-2 mb-4">
+                <input
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addNote()}
+                  placeholder="Add a note about this experiment..."
+                  className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 placeholder-slate-400"
+                />
+                <button
+                  onClick={addNote}
+                  disabled={!noteInput.trim()}
+                  className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Add
+                </button>
+              </div>
+
+              {/* Notes list */}
+              {notes.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-sm">
+                  No notes yet. Add one above.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {notes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="group flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-lg p-3"
+                    >
+                      <StickyNote className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {note.text}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {note.author} &middot;{" "}
+                          {new Date(note.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => deleteNote(note.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-400 p-1 rounded"
+                        title="Delete note"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1475,6 +1787,30 @@ export default function ExperimentsPage() {
                             />
                           </div>
                         </div>
+
+                        {/* Data source badges */}
+                        {experiment.dataSources &&
+                          experiment.dataSources.length > 0 && (
+                            <div className="flex items-center gap-2 flex-wrap pt-1">
+                              <span className="text-xs text-slate-400 font-medium">
+                                Tracking from:
+                              </span>
+                              {experiment.dataSources.map((ds) => (
+                                <span
+                                  key={ds.name}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border",
+                                    ds.color,
+                                    ds.borderColor,
+                                    ds.textColor,
+                                  )}
+                                >
+                                  <span>{ds.emoji}</span>
+                                  {ds.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                       </div>
                     </InsightCard>
                   );
@@ -1610,13 +1946,6 @@ export default function ExperimentsPage() {
               >
                 {mockArchivedExperiments.map((result) => {
                   const config = statusConfig[result.status];
-                  const testDuration = result.endDate
-                    ? Math.floor(
-                        (new Date(result.endDate).getTime() -
-                          new Date(result.startDate).getTime()) /
-                          (1000 * 60 * 60 * 24),
-                      )
-                    : 0;
 
                   return (
                     <InsightCard

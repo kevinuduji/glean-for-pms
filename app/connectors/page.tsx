@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Clock, X, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ToolLogo, { Tool } from "@/components/ToolLogo";
@@ -1518,6 +1519,14 @@ export default function ConnectorsPage() {
   const [selectedConnector, setSelectedConnector] = useState<string | null>(
     null,
   );
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const connectorParam = searchParams.get("connector");
+    if (connectorParam) {
+      setSelectedConnector(connectorParam);
+    }
+  }, [searchParams]);
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -1588,6 +1597,12 @@ export default function ConnectorsPage() {
                   <Clock className="w-3 h-3" />
                   <span>Synced {connector.lastSynced}</span>
                 </div>
+                <button
+                  onClick={() => setSelectedConnector(connector.id)}
+                  className="px-3 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 hover:border-indigo-300 transition-colors"
+                >
+                  View
+                </button>
               </div>
             </div>
           ))}

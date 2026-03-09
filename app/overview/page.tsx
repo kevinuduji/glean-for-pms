@@ -31,6 +31,77 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ─── Connector Badge ────────────────────────────────────────────────────────────
+
+type Connector =
+  | "PostHog"
+  | "Stripe"
+  | "Sentry"
+  | "Prometheus"
+  | "Amplitude"
+  | "GitHub";
+
+const connectorStyles: Record<
+  Connector,
+  { bg: string; text: string; dot: string }
+> = {
+  PostHog: {
+    bg: "bg-[#fff8f0] border border-orange-200",
+    text: "text-orange-700",
+    dot: "bg-orange-400",
+  },
+  Stripe: {
+    bg: "bg-[#f0f4ff] border border-indigo-200",
+    text: "text-indigo-700",
+    dot: "bg-indigo-400",
+  },
+  Sentry: {
+    bg: "bg-[#fff4f2] border border-rose-200",
+    text: "text-rose-700",
+    dot: "bg-rose-400",
+  },
+  Prometheus: {
+    bg: "bg-[#fff9f0] border border-amber-200",
+    text: "text-amber-700",
+    dot: "bg-amber-400",
+  },
+  Amplitude: {
+    bg: "bg-[#f5f3ff] border border-violet-200",
+    text: "text-violet-700",
+    dot: "bg-violet-400",
+  },
+  GitHub: {
+    bg: "bg-slate-100 border border-slate-300",
+    text: "text-slate-700",
+    dot: "bg-slate-500",
+  },
+};
+
+function ConnectorBadges({ connectors }: { connectors: Connector[] }) {
+  return (
+    <div className="flex items-center gap-1 flex-wrap mt-2">
+      {connectors.map((c) => {
+        const s = connectorStyles[c];
+        return (
+          <span
+            key={c}
+            className={cn(
+              "inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+              s.bg,
+              s.text,
+            )}
+          >
+            <span
+              className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", s.dot)}
+            />
+            {c}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 import { ActionButton } from "@/components/ui/ActionButton";
 
 // ─── Mock Data: Product Health ──────────────────────────────────────────────────
@@ -107,6 +178,7 @@ function KPICard({
   changeLabel,
   icon: Icon,
   color,
+  connectors = [],
 }: {
   label: string;
   value: string;
@@ -114,6 +186,7 @@ function KPICard({
   changeLabel: string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
+  connectors?: Connector[];
 }) {
   const positive = change >= 0;
   return (
@@ -144,6 +217,7 @@ function KPICard({
       <div className="text-2xl font-bold text-slate-900 mb-0.5">{value}</div>
       <div className="text-xs text-slate-500">{label}</div>
       <div className="text-[10px] text-slate-400 mt-1">{changeLabel}</div>
+      {connectors.length > 0 && <ConnectorBadges connectors={connectors} />}
     </div>
   );
 }
@@ -155,11 +229,13 @@ function ChartCard({
   subtitle,
   children,
   className,
+  connectors = [],
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   className?: string;
+  connectors?: Connector[];
 }) {
   return (
     <div
@@ -175,6 +251,7 @@ function ChartCard({
             <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
           )}
         </div>
+        {connectors.length > 0 && <ConnectorBadges connectors={connectors} />}
       </div>
       {children}
     </div>
@@ -324,6 +401,7 @@ export default function OverviewPage() {
                     changeLabel="vs last week"
                     icon={Users}
                     color="bg-blue-600"
+                    connectors={["PostHog"]}
                   />
                   <KPICard
                     label="Monthly Revenue"
@@ -332,6 +410,7 @@ export default function OverviewPage() {
                     changeLabel="vs last week"
                     icon={DollarSign}
                     color="bg-green-600"
+                    connectors={["Stripe"]}
                   />
                   <KPICard
                     label="Total Users"
@@ -340,6 +419,7 @@ export default function OverviewPage() {
                     changeLabel="vs last month"
                     icon={Users}
                     color="bg-indigo-600"
+                    connectors={["PostHog", "Amplitude"]}
                   />
                   <KPICard
                     label="Conversion Rate"
@@ -348,6 +428,7 @@ export default function OverviewPage() {
                     changeLabel="vs last month"
                     icon={MousePointerClick}
                     color="bg-violet-600"
+                    connectors={["Amplitude"]}
                   />
                   <KPICard
                     label="P95 Latency"
@@ -356,6 +437,7 @@ export default function OverviewPage() {
                     changeLabel="vs last week"
                     icon={Gauge}
                     color="bg-amber-600"
+                    connectors={["Prometheus"]}
                   />
                   <KPICard
                     label="Error Rate"
@@ -364,13 +446,18 @@ export default function OverviewPage() {
                     changeLabel="vs last week"
                     icon={Activity}
                     color="bg-red-500"
+                    connectors={["Sentry", "Prometheus"]}
                   />
                 </div>
 
                 {/* Main Charts Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* DAU Line Chart */}
-                  <ChartCard title="Daily Active Users" subtitle="Last 30 days">
+                  <ChartCard
+                    title="Daily Active Users"
+                    subtitle="Last 30 days"
+                    connectors={["PostHog"]}
+                  >
                     <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={dailyData}>
@@ -441,6 +528,7 @@ export default function OverviewPage() {
                   <ChartCard
                     title="Monthly Recurring Revenue"
                     subtitle="Last 7 months"
+                    connectors={["Stripe"]}
                   >
                     <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
@@ -515,6 +603,7 @@ export default function OverviewPage() {
                     title="Feature Adoption"
                     subtitle="% of DAU using each feature"
                     className="lg:col-span-1"
+                    connectors={["Amplitude"]}
                   >
                     <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
@@ -579,6 +668,7 @@ export default function OverviewPage() {
                     title="Performance"
                     subtitle="P95 latency & error rate — 30 days"
                     className="lg:col-span-2"
+                    connectors={["Prometheus", "Sentry"]}
                   >
                     <div className="h-[260px]">
                       <ResponsiveContainer width="100%" height="100%">
@@ -648,6 +738,7 @@ export default function OverviewPage() {
                 <ChartCard
                   title="Conversion Funnel"
                   subtitle="Visitor → Paid conversion"
+                  connectors={["Amplitude", "PostHog"]}
                 >
                   <div className="flex items-end gap-2 h-[140px]">
                     {conversionFunnel.map((step, i) => {
