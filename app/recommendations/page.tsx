@@ -9,7 +9,6 @@ import {
   Clock,
   FlaskConical,
   GitMerge,
-  HelpCircle,
   History,
   Lightbulb,
   MessageSquare,
