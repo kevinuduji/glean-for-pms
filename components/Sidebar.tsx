@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sparkles,
   FlaskConical,
@@ -11,8 +11,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LayoutDashboard,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/lib/auth-store";
 import { useState } from "react";
 
 const navItems = [
@@ -29,7 +31,14 @@ const bottomNavItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuthStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const handleSignOut = () => {
+    signOut();
+    router.push("/");
+  };
 
   return (
     <div
@@ -187,16 +196,25 @@ export default function Sidebar() {
                 isCollapsed ? "text-sm" : "text-xs",
               )}
             >
-              K
+              {(user?.name?.[0] ?? "U").toUpperCase()}
             </span>
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-slate-200 text-xs font-medium truncate">
-                Kevin
+                {user?.name ?? "User"}
               </p>
               <p className="text-slate-500 text-xs truncate">Pro Plan</p>
             </div>
+          )}
+          {!isCollapsed && (
+            <button
+              onClick={handleSignOut}
+              className="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           )}
         </div>
       </div>
