@@ -24,6 +24,7 @@ import {
   Play,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+import LandingNav from "@/components/LandingNav";
 
 const integrations = [
   { name: "Amplitude", color: "bg-blue-100 text-blue-700" },
@@ -92,50 +93,11 @@ export default function LandingPage() {
     }
   }, [isAuthenticated, router]);
 
-  const scrollTo = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
   if (isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <Sparkles className="w-4.5 h-4.5 text-white" />
-            </div>
-            <span className="text-slate-900 font-bold text-lg tracking-tight">
-              Probe
-            </span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <button onClick={() => scrollTo("features")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium">Features</button>
-            <button onClick={() => scrollTo("demo")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium">Demo</button>
-            <button onClick={() => scrollTo("use-cases")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium">Use Cases</button>
-            <button onClick={() => scrollTo("integrations")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium">Integrations</button>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-4 py-2"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 active:scale-[0.98]"
-            >
-              Get started
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <LandingNav />
 
       {/* Hero */}
       <section className="relative pt-32 pb-20 overflow-hidden">
@@ -723,6 +685,11 @@ export default function LandingPage() {
               <span className="text-white font-semibold text-sm tracking-tight">
                 Probe
               </span>
+            </div>
+            <div className="flex items-center gap-6">
+              <Link href="/pricing" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+                Pricing
+              </Link>
             </div>
             <p className="text-sm text-slate-500">
               &copy; {new Date().getFullYear()} Probe AI. All rights reserved.

@@ -6,7 +6,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import Sidebar from "@/components/Sidebar";
 import { PersistentAgent } from "@/components/PersistentAgent";
 
-const PUBLIC_ROUTES = ["/", "/login", "/signup"];
+const PUBLIC_ROUTES = ["/", "/login", "/signup", "/pricing"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
