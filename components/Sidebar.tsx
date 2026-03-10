@@ -67,7 +67,7 @@ export default function Sidebar() {
           isCollapsed && "space-y-2",
         )}
       >
-        {navItems.map(({ href, label, description, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const active =
             pathname === href ||
             (href !== "/agent" && pathname.startsWith(href));
@@ -82,7 +82,7 @@ export default function Sidebar() {
                   ? "text-slate-200 bg-slate-800"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800",
               )}
-              title={isCollapsed ? `${label}: ${description}` : ""}
+              title={isCollapsed ? label : ""}
             >
               <Icon
                 className={cn(
@@ -91,10 +91,7 @@ export default function Sidebar() {
                 )}
               />
               {!isCollapsed && (
-                <div className="flex flex-col">
-                  <span className="text-nowrap font-medium">{label}</span>
-                  <span className="text-xs text-slate-500 text-nowrap">{description}</span>
-                </div>
+                <span className="text-nowrap font-medium">{label}</span>
               )}
             </Link>
           );

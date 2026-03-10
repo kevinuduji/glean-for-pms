@@ -10,8 +10,11 @@ import {
   Shield,
   Zap,
   Search,
+  Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import { useAgentStore } from "@/lib/store";
 import QuickQueryPills from "@/components/QuickQueryPills";
@@ -30,7 +33,6 @@ function AgentPageInner() {
   const [inputValue, setInputValue] = useState("");
   const [webEnabled, setWebEnabled] = useState(true);
   const [searchMode, setSearchMode] = useState<"fast" | "deep">("fast");
-  const [connectorsOpen, setConnectorsOpen] = useState(true);
   const [searchFlowOpen, setSearchFlowOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -213,29 +215,38 @@ function AgentPageInner() {
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mb-3">
                     <Search className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">Investigate Issues</h3>
+                  <h3 className="font-semibold text-slate-900 mb-1">
+                    Investigate Issues
+                  </h3>
                   <p className="text-xs text-slate-600">
-                    Ask me to analyze user sessions, conversion funnels, or performance issues
+                    Ask me to analyze user sessions, conversion funnels, or
+                    performance issues
                   </p>
                 </div>
-                
+
                 <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl">
                   <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mb-3">
                     <Zap className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">Design Experiments</h3>
+                  <h3 className="font-semibold text-slate-900 mb-1">
+                    Design Experiments
+                  </h3>
                   <p className="text-xs text-slate-600">
-                    Get help creating A/B tests, defining hypotheses, and measuring success
+                    Get help creating A/B tests, defining hypotheses, and
+                    measuring success
                   </p>
                 </div>
-                
+
                 <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl">
                   <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mb-3">
                     <Sparkles className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">Get Insights</h3>
+                  <h3 className="font-semibold text-slate-900 mb-1">
+                    Get Insights
+                  </h3>
                   <p className="text-xs text-slate-600">
-                    Discover patterns in your data and get recommendations for improvements
+                    Discover patterns in your data and get recommendations for
+                    improvements
                   </p>
                 </div>
               </div>

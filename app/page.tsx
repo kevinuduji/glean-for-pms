@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -109,19 +109,29 @@ const fadeUp = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+    transition: {
+      delay: i * 0.1,
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
   }),
 };
 
 export default function LandingPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hydrate } = useAuthStore();
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    hydrate();
+    setHydrated(true);
+  }, [hydrate]);
+
+  useEffect(() => {
+    if (hydrated && isAuthenticated) {
       router.replace("/agent");
     }
-  }, [isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, router]);
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
@@ -130,7 +140,8 @@ export default function LandingPage() {
     }
   };
 
-  if (isAuthenticated) return null;
+  // Only hide after we've confirmed authentication
+  if (hydrated && isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-white">
@@ -146,10 +157,30 @@ export default function LandingPage() {
             </span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <button onClick={() => scrollTo("features")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium">Features</button>
-            <button onClick={() => scrollTo("demo")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium">Demo</button>
-            <button onClick={() => scrollTo("integrations")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium">Integrations</button>
-            <button onClick={() => scrollTo("use-cases")} className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium">Use Cases</button>
+            <button
+              onClick={() => scrollTo("features")}
+              className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium"
+            >
+              Features
+            </button>
+            <button
+              onClick={() => scrollTo("demo")}
+              className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium"
+            >
+              Demo
+            </button>
+            <button
+              onClick={() => scrollTo("integrations")}
+              className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium"
+            >
+              Integrations
+            </button>
+            <button
+              onClick={() => scrollTo("use-cases")}
+              className="text-sm text-slate-500 hover:text-slate-900 transition-colors font-medium"
+            >
+              Use Cases
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -209,9 +240,8 @@ export default function LandingPage() {
             custom={2}
             className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed mb-10 font-medium"
           >
-            Probe connects the dots
-            between your product&apos;s
-            data and your next decision.
+            Probe connects the dots between your product&apos;s data and your
+            next decision.
           </motion.p>
 
           <motion.div
@@ -264,14 +294,19 @@ export default function LandingPage() {
                   <div className="w-48 space-y-3 hidden md:block">
                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
                       <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                      <span className="text-xs font-semibold text-indigo-700">Agent</span>
+                      <span className="text-xs font-semibold text-indigo-700">
+                        Agent
+                      </span>
                     </div>
                     {[
                       { icon: Search, label: "Discover" },
                       { icon: FlaskConical, label: "Experiments" },
                       { icon: Layers, label: "Overview" },
                     ].map(({ icon: Icon, label }) => (
-                      <div key={label} className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400">
+                      <div
+                        key={label}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400"
+                      >
                         <Icon className="w-3.5 h-3.5" />
                         <span className="text-xs font-medium">{label}</span>
                       </div>
@@ -284,7 +319,9 @@ export default function LandingPage() {
                         <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center">
                           <Sparkles className="w-3 h-3 text-white" />
                         </div>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Probe Agent</span>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                          Probe Agent
+                        </span>
                       </div>
                       <div className="space-y-2">
                         <div className="h-3 bg-slate-100 rounded w-full" />
@@ -294,12 +331,31 @@ export default function LandingPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { label: "Funnel Drop", value: "-15%", color: "text-red-600 bg-red-50 border-red-100" },
-                        { label: "Active Users", value: "12.4K", color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
-                        { label: "Experiments", value: "3 Active", color: "text-indigo-600 bg-indigo-50 border-indigo-100" },
+                        {
+                          label: "Funnel Drop",
+                          value: "-15%",
+                          color: "text-red-600 bg-red-50 border-red-100",
+                        },
+                        {
+                          label: "Active Users",
+                          value: "12.4K",
+                          color:
+                            "text-emerald-600 bg-emerald-50 border-emerald-100",
+                        },
+                        {
+                          label: "Experiments",
+                          value: "3 Active",
+                          color:
+                            "text-indigo-600 bg-indigo-50 border-indigo-100",
+                        },
                       ].map(({ label, value, color }) => (
-                        <div key={label} className={`rounded-lg border p-3 ${color}`}>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1">{label}</p>
+                        <div
+                          key={label}
+                          className={`rounded-lg border p-3 ${color}`}
+                        >
+                          <p className="text-[10px] font-semibold uppercase tracking-wider opacity-60 mb-1">
+                            {label}
+                          </p>
                           <p className="text-lg font-bold">{value}</p>
                         </div>
                       ))}
@@ -313,7 +369,10 @@ export default function LandingPage() {
       </section>
 
       {/* Integrations */}
-      <section id="integrations" className="py-20 border-t border-slate-100 scroll-mt-20">
+      <section
+        id="integrations"
+        className="py-20 border-t border-slate-100 scroll-mt-20"
+      >
         <div className="max-w-5xl mx-auto px-6 text-center">
           <motion.p
             initial="hidden"
@@ -363,7 +422,8 @@ export default function LandingPage() {
               Watch how Probe works
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
-              See how product teams use Probe to go from question to answer in minutes, not days.
+              See how product teams use Probe to go from question to answer in
+              minutes, not days.
             </p>
           </motion.div>
 
@@ -405,9 +465,7 @@ export default function LandingPage() {
                   <p className="text-white/80 text-sm font-semibold mb-1">
                     Product Demo
                   </p>
-                  <p className="text-white/40 text-xs">
-                    3 min watch
-                  </p>
+                  <p className="text-white/40 text-xs">3 min watch</p>
                 </div>
               </div>
 
@@ -442,8 +500,9 @@ export default function LandingPage() {
               Your AI product partner
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
-              Like Cursor for developers, Probe eliminates the slow, manual parts of
-              product work — so you can focus on judgment, not data wrangling.
+              Like Cursor for developers, Probe eliminates the slow, manual
+              parts of product work — so you can focus on judgment, not data
+              wrangling.
             </p>
           </motion.div>
 
@@ -496,7 +555,8 @@ export default function LandingPage() {
               Three stages of product maturity
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
-              Whether you&apos;re just starting or fully instrumented, Probe meets you where you are.
+              Whether you&apos;re just starting or fully instrumented, Probe
+              meets you where you are.
             </p>
           </motion.div>
 
@@ -542,7 +602,9 @@ export default function LandingPage() {
                     {stage.step}
                   </span>
                   <div className="relative pt-12">
-                    <div className={`w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center mb-4 ${stage.color}`}>
+                    <div
+                      className={`w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center mb-4 ${stage.color}`}
+                    >
                       <Icon className="w-5 h-5" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 mb-2">
@@ -577,7 +639,8 @@ export default function LandingPage() {
               Ask Probe anything
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
-              Real questions that PMs, TPMs, and developers face every day — answered with evidence, not intuition alone.
+              Real questions that PMs, TPMs, and developers face every day —
+              answered with evidence, not intuition alone.
             </p>
           </motion.div>
 
@@ -595,7 +658,9 @@ export default function LandingPage() {
                   className={`rounded-2xl border p-6 ${uc.color}`}
                 >
                   <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-lg ${uc.iconColor} flex items-center justify-center flex-shrink-0`}>
+                    <div
+                      className={`w-10 h-10 rounded-lg ${uc.iconColor} flex items-center justify-center flex-shrink-0`}
+                    >
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -629,7 +694,8 @@ export default function LandingPage() {
               Beyond analytics. Beyond search.
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
-              Existing tools show you what happened. Probe tells you what to do about it.
+              Existing tools show you what happened. Probe tells you what to do
+              about it.
             </p>
           </motion.div>
 
@@ -702,8 +768,8 @@ export default function LandingPage() {
               Ship faster with higher confidence
             </h2>
             <p className="text-lg text-slate-400 max-w-xl mx-auto mb-10 font-medium">
-              Turn your data-rich-but-insight-poor team into one that knows exactly
-              what to build, why, and whether it worked.
+              Turn your data-rich-but-insight-poor team into one that knows
+              exactly what to build, why, and whether it worked.
             </p>
             <div className="flex items-center justify-center gap-4">
               <Link

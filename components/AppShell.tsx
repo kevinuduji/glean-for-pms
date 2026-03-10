@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
 import Sidebar from "@/components/Sidebar";
 import TopNav from "@/components/TopNav";
 
 const PUBLIC_ROUTES = ["/", "/login", "/signup"];
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,7 +16,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, hydrate } = useAuthStore();
   const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     hydrate();
     setHydrated(true);
   }, [hydrate]);
@@ -29,20 +31,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, isAuthenticated, isPublicRoute, router]);
 
-  if (!hydrated) {
-    return (
-      <div className="h-full flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center animate-pulse">
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-      </div>
-    );
-  }
-
+  // For public routes, render immediately without waiting for hydration
+  // to avoid a blank flash. Auth state loads in the background.
   if (isPublicRoute) {
     return <>{children}</>;
+  }
+
+  // For protected routes, wait for hydration before deciding
+  if (!hydrated) {
+    return null;
   }
 
   if (!isAuthenticated) {

@@ -268,7 +268,6 @@ export function buildMockPR(item: FeedItem): MockPR {
       .split(" ")
       .slice(0, 4)
       .join("-");
-    const issueLabel = s.issueType ?? "ux-issue";
     return {
       branch: `probe/fix-${slug}`,
       prNumber,

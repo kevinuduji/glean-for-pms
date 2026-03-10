@@ -39,7 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { InsightCard } from "@/components/ui/InsightCard";
 import { ActionButton } from "@/components/ui/ActionButton";
-import { agentScripts, AgentStep } from "@/lib/mock-data/agent-scripts";
+import { agentScripts } from "@/lib/mock-data/agent-scripts";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -114,44 +114,33 @@ interface ExperimentIdea {
   confidence: number;
 }
 
-interface Experiment {
+// ─── Local Agent State ────────────────────────────────────────────────────────
+
+interface LocalAgentStep {
   id: string;
-  name: string;
-  status: "draft" | "running" | "completed" | "shipped" | "failed" | "inconclusive";
-  hypothesis: string;
-  primaryMetric: string;
-  targetLift: number;
-  currentLift?: number;
-  confidence?: number;
-  startDate: string;
-  estimatedEndDate?: string;
-  endDate?: string;
-  sampleSize: {
-    current: number;
-    target: number;
-  };
-  traffic: number;
-  source?: string;
-  expectedOutcome?: string;
-  cohorts?: CohortData[];
-  keyLearning?: string;
-  nextActions?: string[];
-  businessImpact?: {
-    revenue?: number;
-    users?: number;
-    metric?: string;
-  };
+  action: string;
+  result: string;
+  durationMs: number;
+  status: "pending" | "running" | "done";
 }
 
-interface ExperimentIdea {
-  id: string;
-  title: string;
-  description: string;
-  source: "discover" | "ai" | "manual";
-  priority: "high" | "medium" | "low";
-  estimatedImpact: number;
-  confidence: number;
+interface LocalAgentState {
+  scriptId: string | null;
+  query: string;
+  steps: LocalAgentStep[];
+  response: string;
+  isRunning: boolean;
+  isComplete: boolean;
 }
+
+const emptyAgentState: LocalAgentState = {
+  scriptId: null,
+  query: "",
+  steps: [],
+  response: "",
+  isRunning: false,
+  isComplete: false,
+};
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────────
 
@@ -685,9 +674,9 @@ function useLocalAgent() {
         const doneAt = cumulative;
 
         const runTimer = setTimeout(() => {
-          setAgentState((prev) => ({
+          setAgentState((prev: LocalAgentState) => ({
             ...prev,
-            steps: prev.steps.map((s, i) =>
+            steps: prev.steps.map((s: LocalAgentStep, i: number) =>
               i === index ? { ...s, status: "running" } : s,
             ),
           }));
@@ -695,9 +684,9 @@ function useLocalAgent() {
         timersRef.current.push(runTimer);
 
         const doneTimer = setTimeout(() => {
-          setAgentState((prev) => ({
+          setAgentState((prev: LocalAgentState) => ({
             ...prev,
-            steps: prev.steps.map((s, i) =>
+            steps: prev.steps.map((s: LocalAgentStep, i: number) =>
               i === index ? { ...s, status: "done" } : s,
             ),
           }));
@@ -706,7 +695,7 @@ function useLocalAgent() {
       });
 
       const finishTimer = setTimeout(() => {
-        setAgentState((prev) => ({
+        setAgentState((prev: LocalAgentState) => ({
           ...prev,
           response: script.response,
           isRunning: false,
@@ -841,7 +830,7 @@ function RightAgentPanel({
 
         {/* Step trace */}
         {(agentState.isRunning || agentState.isComplete) &&
-          agentState.steps.map((step) => (
+          agentState.steps.map((step: LocalAgentStep) => (
             <div
               key={step.id}
               className={cn(
@@ -976,17 +965,6 @@ function ExperimentDetail({
         ? "#818cf8"
         : "#6366f1",
   }));
-
-  if (selectedExperiment) {
-    return (
-      <div className="h-full bg-slate-50 overflow-hidden flex flex-col">
-        <ExperimentDetail
-          experiment={selectedExperiment}
-          onBack={() => setSelectedExperiment(null)}
-        />
-      </div>
-    );
-  }
 
   return (
     <motion.div

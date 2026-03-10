@@ -135,7 +135,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       },
 
       canSeeTeam: (teamId) => {
-        const { teams, currentUserId } = get();
+        const { teams } = get();
         const workspaceRole = get().getWorkspaceRole();
         if (workspaceRole === 'admin') return true;
         const team = teams.find((t) => t.id === teamId);
