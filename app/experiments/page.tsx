@@ -35,6 +35,7 @@ import {
   Database,
   StickyNote,
   Trash2,
+  History as LucideHistory,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InsightCard } from "@/components/ui/InsightCard";
@@ -990,12 +991,21 @@ function ExperimentDetail({
 
 export default function ExperimentsPage() {
   const [selectedTab, setSelectedTab] = useState<
-    "active" | "queue" | "ideas" | "archive"
+    "active" | "queue" | "ideas" | "closed" | "archived"
   >("active");
   const [selectedExperiment, setSelectedExperiment] =
     useState<Experiment | null>(null);
   const [showAIDesigner, setShowAIDesigner] = useState(false);
   const [aiInput, setAiInput] = useState("");
+  const [closedExperiments, setClosedExperiments] = useState(
+    mockArchivedExperiments,
+  );
+
+  const handleMarkStatus = (id: string, status: "shipped" | "failed") => {
+    setClosedExperiments((prev) =>
+      prev.map((exp) => (exp.id === id ? { ...exp, status } : exp)),
+    );
+  };
   const { agentState, runLocalScript, resetAgent } = useLocalAgent();
 
   const handleViewExperiment = (experiment: Experiment) => {
@@ -1049,9 +1059,14 @@ export default function ExperimentsPage() {
       count: mockExperimentIdeas.length,
     },
     {
-      id: "archive" as const,
-      label: "Archive",
-      count: mockArchivedExperiments.length,
+      id: "closed" as const,
+      label: "Closed",
+      count: closedExperiments.length,
+    },
+    {
+      id: "archived" as const,
+      label: "Archived",
+      count: 0,
     },
   ];
 
@@ -1429,16 +1444,16 @@ export default function ExperimentsPage() {
               </motion.div>
             )}
 
-            {/* Archive */}
-            {selectedTab === "archive" && (
+            {/* Closed */}
+            {selectedTab === "closed" && (
               <motion.div
-                key="archive"
+                key="closed"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-6"
               >
-                {mockArchivedExperiments.map((result) => {
+                {closedExperiments.map((result) => {
                   const config = statusConfig[result.status];
 
                   return (
@@ -1466,14 +1481,24 @@ export default function ExperimentsPage() {
                             View Results
                           </ActionButton>
                           <ActionButton
-                            icon={Zap}
+                            icon={CheckCircle2}
                             variant="secondary"
                             size="sm"
                             onClick={() =>
-                              console.log("Plan next test:", result.name)
+                              handleMarkStatus(result.id, "shipped")
                             }
                           >
-                            Plan Next Test
+                            Succeeded
+                          </ActionButton>
+                          <ActionButton
+                            icon={XCircle}
+                            variant="secondary"
+                            size="sm"
+                            onClick={() =>
+                              handleMarkStatus(result.id, "failed")
+                            }
+                          >
+                            Failed
                           </ActionButton>
 
                           {result.businessImpact && (
@@ -1558,6 +1583,27 @@ export default function ExperimentsPage() {
                     </InsightCard>
                   );
                 })}
+              </motion.div>
+            )}
+
+            {/* Archived */}
+            {selectedTab === "archived" && (
+              <motion.div
+                key="archived"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="py-20 text-center"
+              >
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <LucideHistory className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-slate-900 font-semibold mb-1">
+                  No archived experiments
+                </h3>
+                <p className="text-slate-500 text-sm">
+                  Experiments moved here will be stored indefinitely.
+                </p>
               </motion.div>
             )}
           </AnimatePresence>

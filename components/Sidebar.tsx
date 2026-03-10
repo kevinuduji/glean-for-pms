@@ -9,14 +9,15 @@ import {
   Search,
   PanelLeftClose,
   PanelLeftOpen,
-  GitMerge,
   LayoutDashboard,
   SquarePen,
   MessageSquare,
   FolderPlus,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import SearchModal from "./SearchModal";
 import { useAgentStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 
@@ -24,8 +25,8 @@ const navItems = [
   { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/agent", label: "New Chat", icon: SquarePen },
   { href: "/experiments", label: "Experiments", icon: FlaskConical },
-  { href: "/product-history", label: "Product History", icon: GitMerge },
-  { href: "/discover", label: "Discover", icon: Search },
+  // { href: "/product-history", label: "Product History", icon: GitMerge },
+  { href: "/discover", label: "Discover", icon: Compass },
 ];
 
 const bottomNavItems = [
@@ -36,7 +37,19 @@ const bottomNavItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
   const { savedChats, loadChat, activeChatId, projects, resetAgent } =
     useAgentStore();
 
@@ -71,6 +84,36 @@ export default function Sidebar() {
             <PanelLeftOpen className="w-5 h-5" />
           ) : (
             <PanelLeftClose className="w-4 h-4" />
+          )}
+        </button>
+      </div>
+
+      {/* Search Button */}
+      <div
+        className={cn(
+          "px-2 pb-2 mt-2",
+          isCollapsed && "flex justify-center mt-2",
+        )}
+      >
+        <button
+          onClick={() => setIsSearchOpen(true)}
+          className={cn(
+            "flex items-center gap-3 px-3 py-1.5 w-full rounded-lg text-[13px] transition-all relative text-slate-400 hover:text-slate-200 hover:bg-slate-800",
+            isCollapsed && "justify-center px-0 w-12 h-12 mx-auto",
+          )}
+          title={isCollapsed ? "Search (⌘K)" : ""}
+        >
+          <Search
+            className={cn("flex-shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4")}
+          />
+          {!isCollapsed && (
+            <div className="flex items-center justify-between flex-1">
+              <span className="text-nowrap font-medium">Search</span>
+              <div className="flex items-center gap-1 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-500 font-medium">
+                <span>⌘</span>
+                <span>K</span>
+              </div>
+            </div>
           )}
         </button>
       </div>
@@ -250,6 +293,11 @@ export default function Sidebar() {
           )}
         </div>
       </div>
+
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </div>
   );
 }

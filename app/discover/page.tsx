@@ -4,13 +4,11 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
-  BarChart3,
   BookOpen,
   Check,
   ChevronRight,
   Copy,
   ExternalLink,
-  Filter,
   FlaskConical,
   GitBranch,
   GitMerge,
@@ -288,9 +286,8 @@ function FeedItemCard({
         <div className="flex flex-col gap-2.5 mb-5 mt-auto">
           {!isSession && item.source.confidence !== null ? (
             <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded w-fit">
-              <Sparkles className="w-3.5 h-3.5" />
-              AI Recommendation{" "}
-              <span className="text-indigo-400 font-normal">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="text-indigo-700">
                 {item.source.confidence}% confidence
               </span>
             </div>
@@ -1325,52 +1322,12 @@ export default function RecommendationsPage() {
       {/* Center Feed */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Discover Header */}
-        <div className="px-8 pt-8 pb-4 border-b border-slate-200 bg-white flex-shrink-0">
+        <div className="px-8 pt-8 pb-6 border-b border-slate-200 bg-white flex-shrink-0">
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Discover</h1>
           <p className="text-sm text-slate-500">
             What should I work on next? AI-powered recommendations from across
             your product stack.
           </p>
-
-          <div className="mt-8 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-slate-500 flex items-center gap-2 mr-2">
-                <Filter className="w-4 h-4" />
-                Filter by:
-              </span>
-              <select
-                className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                value={feedTab}
-                onChange={(e) => {
-                  setFeedTab(e.target.value as FeedTab);
-                  setFilters((f) => ({ ...f, types: new Set() }));
-                }}
-              >
-                <option value="all">All Types</option>
-                <option value="recommendation">Recommendations</option>
-                <option value="friction-session">Attention</option>
-              </select>
-              <select
-                className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const newPriorities = new Set<UnifiedPriority>();
-                  if (val !== "all") newPriorities.add(val as UnifiedPriority);
-                  setFilters((f) => ({ ...f, priorities: newPriorities }));
-                }}
-              >
-                <option value="all">All Priorities</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-              </select>
-            </div>
-
-            <button className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">
-              <BarChart3 className="w-4 h-4" />
-              View Analytics
-            </button>
-          </div>
         </div>
 
         {/* Feed Body */}
