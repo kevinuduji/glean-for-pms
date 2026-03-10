@@ -5,10 +5,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const redirects: Record<string, string> = {
-    '/dashboard': '/discover',
-    '/sessions': '/discover',
-    '/recommendations': '/discover', 
-    '/insights': '/discover',
+    '/recommendations': '/discover',
     '/validate': '/experiments',
     '/retrospective': '/overview',
     '/learn': '/overview',
@@ -25,10 +22,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/dashboard',
-    '/sessions',
     '/recommendations',
-    '/insights', 
     '/validate',
     '/retrospective',
     '/learn',
