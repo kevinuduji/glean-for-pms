@@ -30,6 +30,8 @@ function AgentPageInner() {
   const [inputValue, setInputValue] = useState("");
   const [webEnabled, setWebEnabled] = useState(true);
   const [searchMode, setSearchMode] = useState<"fast" | "deep">("fast");
+  const [connectorsOpen, setConnectorsOpen] = useState(true);
+  const [searchFlowOpen, setSearchFlowOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hasAutoRun = useRef(false);
@@ -169,6 +171,17 @@ function AgentPageInner() {
                 Reset
               </button>
             )}
+            <button
+              onClick={() => setSearchFlowOpen(!searchFlowOpen)}
+              className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
+              title={searchFlowOpen ? "Hide search flow" : "Show search flow"}
+            >
+              {searchFlowOpen ? (
+                <PanelRightClose className="w-4 h-4" />
+              ) : (
+                <PanelRightOpen className="w-4 h-4" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -192,6 +205,39 @@ function AgentPageInner() {
                   Suggested queries
                 </p>
                 <QuickQueryPills layout="wrap" onPillClick={handlePillClick} />
+              </div>
+
+              {/* Quick action cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-8">
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mb-3">
+                    <Search className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-1">Investigate Issues</h3>
+                  <p className="text-xs text-slate-600">
+                    Ask me to analyze user sessions, conversion funnels, or performance issues
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mb-3">
+                    <Zap className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-1">Design Experiments</h3>
+                  <p className="text-xs text-slate-600">
+                    Get help creating A/B tests, defining hypotheses, and measuring success
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl">
+                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mb-3">
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-slate-900 mb-1">Get Insights</h3>
+                  <p className="text-xs text-slate-600">
+                    Discover patterns in your data and get recommendations for improvements
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -386,7 +432,7 @@ function AgentPageInner() {
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Ask a question about your connectors..."
+                    placeholder="Ask me anything about your product, users, or experiments..."
                     disabled={isRunning}
                     className="flex-1 pl-6 pr-4 py-3.5 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-base font-medium disabled:opacity-50"
                   />

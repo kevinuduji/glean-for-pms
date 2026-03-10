@@ -67,10 +67,10 @@ export default function Sidebar() {
           isCollapsed && "space-y-2",
         )}
       >
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, description, icon: Icon }) => {
           const active =
             pathname === href ||
-            (href !== "/dashboard" && pathname.startsWith(href));
+            (href !== "/agent" && pathname.startsWith(href));
           return (
             <Link
               key={href}
@@ -82,7 +82,7 @@ export default function Sidebar() {
                   ? "text-slate-200 bg-slate-800"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800",
               )}
-              title={isCollapsed ? label : ""}
+              title={isCollapsed ? `${label}: ${description}` : ""}
             >
               <Icon
                 className={cn(
@@ -90,7 +90,12 @@ export default function Sidebar() {
                   isCollapsed ? "w-5 h-5" : "w-4 h-4",
                 )}
               />
-              {!isCollapsed && <span className="text-nowrap">{label}</span>}
+              {!isCollapsed && (
+                <div className="flex flex-col">
+                  <span className="text-nowrap font-medium">{label}</span>
+                  <span className="text-xs text-slate-500 text-nowrap">{description}</span>
+                </div>
+              )}
             </Link>
           );
         })}

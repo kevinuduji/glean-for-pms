@@ -114,25 +114,46 @@ interface ExperimentIdea {
   confidence: number;
 }
 
-type LocalStepStatus = "pending" | "running" | "done";
+interface Experiment {
+  id: string;
+  name: string;
+  status: "draft" | "running" | "completed" | "shipped" | "failed" | "inconclusive";
+  hypothesis: string;
+  primaryMetric: string;
+  targetLift: number;
+  currentLift?: number;
+  confidence?: number;
+  startDate: string;
+  estimatedEndDate?: string;
+  endDate?: string;
+  sampleSize: {
+    current: number;
+    target: number;
+  };
+  traffic: number;
+  source?: string;
+  expectedOutcome?: string;
+  cohorts?: CohortData[];
+  keyLearning?: string;
+  nextActions?: string[];
+  businessImpact?: {
+    revenue?: number;
+    users?: number;
+    metric?: string;
+  };
+}
 
-type LocalAgentState = {
-  scriptId: string | null;
-  query: string;
-  steps: (AgentStep & { status: LocalStepStatus })[];
-  response: string;
-  isRunning: boolean;
-  isComplete: boolean;
-};
+interface ExperimentIdea {
+  id: string;
+  title: string;
+  description: string;
+  source: "discover" | "ai" | "manual";
+  priority: "high" | "medium" | "low";
+  estimatedImpact: number;
+  confidence: number;
+}
 
-const emptyAgentState: LocalAgentState = {
-  scriptId: null,
-  query: "",
-  steps: [],
-  response: "",
-  isRunning: false,
-  isComplete: false,
-};
+// ─── Mock Data ──────────────────────────────────────────────────────────────────
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────────
 
@@ -955,6 +976,17 @@ function ExperimentDetail({
         ? "#818cf8"
         : "#6366f1",
   }));
+
+  if (selectedExperiment) {
+    return (
+      <div className="h-full bg-slate-50 overflow-hidden flex flex-col">
+        <ExperimentDetail
+          experiment={selectedExperiment}
+          onBack={() => setSelectedExperiment(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <motion.div
