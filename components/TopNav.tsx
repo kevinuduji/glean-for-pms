@@ -5,20 +5,21 @@ import {
   Search,
   Clock,
   LayoutDashboard,
-  Sparkles,
   FlaskConical,
   GitMerge,
   Lightbulb,
   Server,
+  SquarePen,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAgentStore } from "@/lib/store";
 import {
   mockActiveExperiments,
   mockExperimentQueue,
   mockExperimentIdeas,
   mockArchivedExperiments,
-} from "@/app/experiments/page";
+} from "@/lib/mock-data/experiments";
 import { retroFeatures } from "@/lib/mock-data/retrospective";
 import { buildUnifiedFeed } from "@/lib/mock-data/unified-feed";
 import { activeConnectors } from "@/lib/mock-data/connectors";
@@ -33,10 +34,10 @@ const STATIC_SEARCH_DATA = [
   },
   {
     id: "nav-2",
-    title: "Agent Interface",
+    title: "New Chat",
     type: "page",
     url: "/agent",
-    icon: Sparkles,
+    icon: SquarePen,
   },
   {
     id: "nav-3",
@@ -66,6 +67,7 @@ export default function TopNav() {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { resetAgent } = useAgentStore();
 
   // Combine data sources
   const MOCK_SEARCH_DATA = useMemo(() => {
@@ -168,14 +170,25 @@ export default function TopNav() {
   };
 
   return (
-    <div className="h-12 bg-[#2D3139] border-b border-slate-800 flex items-center justify-center px-4 relative z-50">
+    <div className="h-12 bg-slate-900 border-b border-slate-800 flex items-center px-6 relative z-50">
+      <div className="flex-1 flex items-center">
+        <button
+          onClick={() => {
+            resetAgent();
+            router.push("/agent");
+          }}
+          className="text-white font-playfair text-xl font-medium tracking-tight hover:opacity-80 transition-opacity"
+        >
+          Probe
+        </button>
+      </div>
       <div className="w-full max-w-xl relative" ref={wrapperRef}>
         <div
           className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-all border",
             isOpen
-              ? "bg-[#3f444f] border-slate-500 shadow-sm"
-              : "bg-[#3B404A] border-transparent hover:bg-[#3f444f] hover:border-slate-500",
+              ? "bg-slate-800 border-slate-700 shadow-sm"
+              : "bg-slate-800/50 border-transparent hover:bg-slate-800 hover:border-slate-700",
           )}
         >
           <Search className="w-4 h-4 text-slate-400 shrink-0" />
@@ -196,7 +209,7 @@ export default function TopNav() {
         </div>
 
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#2D3139] border border-slate-700 rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[400px]">
+          <div className="absolute top-full left-0 right-0 mt-1.5 bg-slate-900 border border-slate-700 rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[400px]">
             {query.length === 0 ? (
               <div className="p-3">
                 <p className="text-xs font-medium text-slate-500 mb-2 px-2">
@@ -204,14 +217,14 @@ export default function TopNav() {
                 </p>
                 <button
                   onClick={() => handleSelect("/experiments")}
-                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-slate-300 hover:bg-[#3B404A] hover:text-slate-100 rounded-md transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-slate-100 rounded-md transition-colors text-left"
                 >
                   <Clock className="w-4 h-4 text-slate-500" />
                   Cart Drop-off Resolution
                 </button>
                 <button
                   onClick={() => handleSelect("/overview")}
-                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-slate-300 hover:bg-[#3B404A] hover:text-slate-100 rounded-md transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-2 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-slate-100 rounded-md transition-colors text-left"
                 >
                   <Clock className="w-4 h-4 text-slate-500" />
                   Overview Dashboard
@@ -228,9 +241,9 @@ export default function TopNav() {
                     <button
                       key={item.id}
                       onClick={() => handleSelect(item.url)}
-                      className="w-full flex items-center gap-3 px-2 py-2 text-sm text-slate-300 hover:bg-[#3B404A] hover:text-slate-100 rounded-md transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-2 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-slate-100 rounded-md transition-colors text-left"
                     >
-                      <div className="w-6 h-6 rounded bg-[#3f444f] flex items-center justify-center shrink-0">
+                      <div className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center shrink-0">
                         <Icon className="w-3.5 h-3.5 text-slate-400" />
                       </div>
                       <span className="flex-1 truncate">{item.title}</span>
@@ -249,6 +262,7 @@ export default function TopNav() {
           </div>
         )}
       </div>
+      <div className="flex-1" />
     </div>
   );
 }

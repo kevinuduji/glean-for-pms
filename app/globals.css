@@ -13,10 +13,6 @@ body {
   margin: 0;
 }
 
-html {
-  zoom: 110%;
-}
-
 body {
   color: var(--foreground);
   background: var(--background);
@@ -32,5 +28,8 @@ body {
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  .font-playfair {
+    font-family: var(--font-playfair), serif;
   }
 }

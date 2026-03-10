@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Plus, Check, ChevronRight, Globe, Zap } from "lucide-react";
+import { Search, Plus, Check, ChevronRight } from "lucide-react";
 import ToolLogo, { Tool } from "./ToolLogo";
 import { cn } from "@/lib/utils";
 
@@ -90,7 +90,7 @@ export default function ConnectorsSidebar({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
             <input
               type="text"
-              placeholder="Search for new connectors"
+              placeholder="Search for connectors"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
@@ -100,36 +100,6 @@ export default function ConnectorsSidebar({
             </button>
           </div>
         )}
-
-        <div className={cn("flex gap-2", isCollapsed && "flex-col")}>
-          <button
-            title="Web Search"
-            className={cn(
-              "flex-1 flex items-center justify-between px-2 py-1 bg-slate-100 rounded text-[10px] font-medium text-slate-600 hover:bg-slate-200 transition-colors border border-slate-200",
-              isCollapsed && "w-10 h-10 justify-center rounded-full",
-            )}
-          >
-            <div className="flex items-center gap-1.5">
-              <Globe className="w-3 h-3" />
-              {!isCollapsed && "Web"}
-            </div>
-            {!isCollapsed && <ChevronRight className="w-2.5 h-2.5 rotate-90" />}
-          </button>
-          <button
-            title="Fast Research"
-            className={cn(
-              "flex-1 flex items-center justify-between px-2 py-1 bg-slate-100 rounded text-[10px] font-medium text-slate-600 hover:bg-slate-200 transition-colors border border-slate-200",
-              isCollapsed &&
-                "w-10 h-10 justify-center rounded-full border-indigo-200",
-            )}
-          >
-            <div className="flex items-center gap-1.5">
-              <Zap className="w-3 h-3 text-indigo-500" />
-              {!isCollapsed && "Fast Research"}
-            </div>
-            {!isCollapsed && <ChevronRight className="w-2.5 h-2.5 rotate-90" />}
-          </button>
-        </div>
       </div>
 
       {/* Connector List */}
@@ -140,35 +110,34 @@ export default function ConnectorsSidebar({
         )}
       >
         <div
+          onClick={toggleAll}
           className={cn(
-            "flex items-center justify-between",
-            isCollapsed && "justify-center",
+            "flex items-center gap-3 py-1.5 px-2 rounded-lg cursor-pointer hover:bg-slate-100 transition-all select-none",
+            isCollapsed && "justify-center px-0",
           )}
         >
-          {!isCollapsed && (
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Select all
-            </span>
-          )}
-          <button
-            onClick={toggleAll}
-            title={
-              selectedConnectors.size === ALL_CONNECTORS.length
-                ? "Deselect all"
-                : "Select all"
-            }
+          <div
             className={cn(
-              "w-4 h-4 rounded border flex items-center justify-center transition-all",
+              "w-4 h-4 rounded-md border flex items-center justify-center transition-all flex-shrink-0",
               selectedConnectors.size === ALL_CONNECTORS.length
                 ? "bg-indigo-600 border-indigo-600"
-                : "border-slate-300 bg-white hover:border-indigo-500",
+                : "border-slate-300 bg-white group-hover:border-indigo-500",
             )}
           >
             {selectedConnectors.size === ALL_CONNECTORS.length && (
               <Check className="w-2.5 h-2.5 text-white" />
             )}
-          </button>
+          </div>
+          {!isCollapsed && (
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+              Select all
+            </span>
+          )}
         </div>
+
+        {!isCollapsed && (
+          <div className="h-px bg-slate-200/60 mx-2 mt-1 mb-2" />
+        )}
 
         <div className={cn("space-y-1", isCollapsed && "space-y-3")}>
           {filteredConnectors.map((source) => (
@@ -177,8 +146,8 @@ export default function ConnectorsSidebar({
               onClick={() => toggleSource(source.id)}
               title={source.name}
               className={cn(
-                "group flex items-center justify-between p-1.5 rounded-lg cursor-pointer transition-all",
-                isCollapsed ? "justify-center p-1" : "px-1.5",
+                "group flex items-center gap-3 p-1.5 rounded-lg cursor-pointer transition-all",
+                isCollapsed ? "justify-center p-1" : "px-2",
                 selectedConnectors.has(source.id)
                   ? "bg-white shadow-sm border border-slate-200"
                   : "hover:bg-slate-100 border border-transparent",
@@ -187,6 +156,21 @@ export default function ConnectorsSidebar({
                   "ring-2 ring-indigo-500/20 shadow-indigo-500/10",
               )}
             >
+              {!isCollapsed && (
+                <div
+                  className={cn(
+                    "w-4 h-4 rounded-md border flex items-center justify-center transition-all flex-shrink-0 outline-none",
+                    selectedConnectors.has(source.id)
+                      ? "bg-indigo-600 border-indigo-600"
+                      : "border-slate-300 group-hover:border-slate-400",
+                  )}
+                >
+                  {selectedConnectors.has(source.id) && (
+                    <Check className="w-2.5 h-2.5 text-white" />
+                  )}
+                </div>
+              )}
+
               <div
                 className={cn(
                   "flex items-center gap-3 min-w-0",
@@ -217,20 +201,6 @@ export default function ConnectorsSidebar({
                   </span>
                 )}
               </div>
-              {!isCollapsed && (
-                <div
-                  className={cn(
-                    "w-4 h-4 rounded border flex items-center justify-center transition-all",
-                    selectedConnectors.has(source.id)
-                      ? "bg-indigo-600 border-indigo-600"
-                      : "border-slate-300 group-hover:border-slate-400",
-                  )}
-                >
-                  {selectedConnectors.has(source.id) && (
-                    <Check className="w-2.5 h-2.5 text-white" />
-                  )}
-                </div>
-              )}
             </div>
           ))}
         </div>

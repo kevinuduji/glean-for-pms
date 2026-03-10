@@ -7,15 +7,13 @@ import {
   Sparkles,
   ChevronRight,
   X,
-  MessageSquare,
   Lightbulb,
   TrendingUp,
   FlaskConical,
   Search,
-  Send,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ActionButton } from "./ui/ActionButton";
 
 interface ContextualSuggestion {
   id: string;
@@ -38,7 +36,8 @@ const contextualSuggestions: Record<string, ContextualSuggestion[]> = {
     {
       id: "quick-analysis",
       title: "Quick Data Analysis",
-      description: "I can help you analyze conversion funnels, user behavior, or experiment results.",
+      description:
+        "I can help you analyze conversion funnels, user behavior, or experiment results.",
       action: "Get Started",
       icon: TrendingUp,
       onClick: () => console.log("Quick analysis"),
@@ -46,7 +45,8 @@ const contextualSuggestions: Record<string, ContextualSuggestion[]> = {
     {
       id: "experiment-design",
       title: "Design New Experiment",
-      description: "Let me help you create a hypothesis and design an A/B test based on your data.",
+      description:
+        "Let me help you create a hypothesis and design an A/B test based on your data.",
       action: "Start Design",
       icon: FlaskConical,
       onClick: () => console.log("Design experiment"),
@@ -56,15 +56,17 @@ const contextualSuggestions: Record<string, ContextualSuggestion[]> = {
     {
       id: "analyze-funnel",
       title: "Checkout Funnel Issue",
-      description: "I found 3 similar issues from last quarter that were solved by simplifying the checkout flow.",
+      description:
+        "I found 3 similar issues from last quarter that were solved by simplifying the checkout flow.",
       action: "Analyze Pattern",
       icon: TrendingUp,
       onClick: () => console.log("Analyze funnel"),
     },
     {
       id: "test-social-proof",
-      title: "Social Proof Opportunity", 
-      description: "Based on your user sessions, adding testimonials could increase signup conversion by 15%.",
+      title: "Social Proof Opportunity",
+      description:
+        "Based on your user sessions, adding testimonials could increase signup conversion by 15%.",
       action: "Start Test",
       icon: FlaskConical,
       onClick: () => console.log("Test social proof"),
@@ -74,7 +76,8 @@ const contextualSuggestions: Record<string, ContextualSuggestion[]> = {
     {
       id: "similar-test",
       title: "Similar Test Warning",
-      description: "This test is similar to one that failed last month. Consider testing the mobile experience first.",
+      description:
+        "This test is similar to one that failed last month. Consider testing the mobile experience first.",
       action: "View History",
       icon: Search,
       onClick: () => console.log("View similar test"),
@@ -82,7 +85,8 @@ const contextualSuggestions: Record<string, ContextualSuggestion[]> = {
     {
       id: "experiment-idea",
       title: "Experiment Suggestion",
-      description: "Your discover insights suggest testing a simplified pricing page. I can help design this experiment.",
+      description:
+        "Your discover insights suggest testing a simplified pricing page. I can help design this experiment.",
       action: "Design Test",
       icon: Lightbulb,
       onClick: () => console.log("Design experiment"),
@@ -92,7 +96,8 @@ const contextualSuggestions: Record<string, ContextualSuggestion[]> = {
     {
       id: "next-iteration",
       title: "Next Test Suggestion",
-      description: "Your social proof test succeeded. Next, try testing different testimonial formats for even higher impact.",
+      description:
+        "Your social proof test succeeded. Next, try testing different testimonial formats for even higher impact.",
       action: "Plan Next Test",
       icon: ChevronRight,
       onClick: () => console.log("Plan next test"),
@@ -100,7 +105,8 @@ const contextualSuggestions: Record<string, ContextualSuggestion[]> = {
     {
       id: "pattern-insight",
       title: "Pattern Recognition",
-      description: "I notice mobile tests perform 23% better than desktop. Consider mobile-first experimentation.",
+      description:
+        "I notice mobile tests perform 23% better than desktop. Consider mobile-first experimentation.",
       action: "Explore Pattern",
       icon: TrendingUp,
       onClick: () => console.log("Explore pattern"),
@@ -126,9 +132,9 @@ export function PersistentAgent() {
         content: getContextualMessage(pathname),
         timestamp: new Date(),
       };
-      setMessages(prev => [contextMessage, ...prev.slice(0, 4)]); // Keep last 5 messages
+      setMessages((prev) => [contextMessage, ...prev.slice(0, 4)]); // Keep last 5 messages
     }
-  }, [pathname]);
+  }, [pathname, suggestions.length]);
 
   function getContextualMessage(path: string): string {
     switch (path) {
@@ -147,27 +153,28 @@ export function PersistentAgent() {
 
   function handleSendMessage() {
     if (!inputValue.trim()) return;
-    
+
     const userMessage: AgentMessage = {
       id: `user-${Date.now()}`,
       type: "question",
       content: inputValue,
       timestamp: new Date(),
     };
-    
-    setMessages(prev => [userMessage, ...prev]);
+
+    setMessages((prev) => [userMessage, ...prev]);
     setInputValue("");
     setIsTyping(true);
-    
+
     // Simulate AI response
     setTimeout(() => {
       const aiResponse: AgentMessage = {
         id: `ai-${Date.now()}`,
         type: "suggestion",
-        content: "I understand you're asking about that. Let me analyze your data and get back to you with specific recommendations.",
+        content:
+          "I understand you're asking about that. Let me analyze your data and get back to you with specific recommendations.",
         timestamp: new Date(),
       };
-      setMessages(prev => [aiResponse, ...prev]);
+      setMessages((prev) => [aiResponse, ...prev]);
       setIsTyping(false);
     }, 2000);
   }
@@ -188,7 +195,9 @@ export function PersistentAgent() {
                 <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
                   <Sparkles className="w-3 h-3 text-white" />
                 </div>
-                <span className="font-semibold text-slate-900 text-sm">Probe AI</span>
+                <span className="font-semibold text-slate-900 text-sm">
+                  Probe AI
+                </span>
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               </div>
               <button
@@ -204,22 +213,33 @@ export function PersistentAgent() {
               {isTyping && (
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <div className="flex gap-1">
-                    <div className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <div
+                      className="w-1 h-1 rounded-full bg-slate-400 animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <div
+                      className="w-1 h-1 rounded-full bg-slate-400 animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <div
+                      className="w-1 h-1 rounded-full bg-slate-400 animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    />
                   </div>
                   Probe is thinking...
                 </div>
               )}
-              
+
               {messages.map((message) => (
                 <div key={message.id} className="text-sm">
-                  <div className={cn(
-                    "p-3 rounded-xl",
-                    message.type === "question" 
-                      ? "bg-indigo-50 text-indigo-900 ml-8" 
-                      : "bg-slate-50 text-slate-700"
-                  )}>
+                  <div
+                    className={cn(
+                      "p-3 rounded-xl",
+                      message.type === "question"
+                        ? "bg-indigo-50 text-indigo-900 ml-8"
+                        : "bg-slate-50 text-slate-700",
+                    )}
+                  >
                     {message.content}
                   </div>
                 </div>
@@ -274,7 +294,7 @@ export function PersistentAgent() {
                   disabled={!inputValue.trim()}
                   className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Send className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -289,9 +309,9 @@ export function PersistentAgent() {
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
           "w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200",
-          isExpanded 
-            ? "bg-slate-600 text-white" 
-            : "bg-indigo-600 text-white hover:bg-indigo-700"
+          isExpanded
+            ? "bg-slate-600 text-white"
+            : "bg-indigo-600 text-white hover:bg-indigo-700",
         )}
       >
         {isExpanded ? (

@@ -4,39 +4,100 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Send,
-  RotateCcw,
-  Globe,
-  Shield,
-  Zap,
   Search,
-  Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
+  FlaskConical,
+  Code,
+  Activity,
+  LineChart,
+  ArrowRight,
+  Compass,
+  Ticket,
 } from "lucide-react";
 import { useAgentStore } from "@/lib/store";
-import QuickQueryPills from "@/components/QuickQueryPills";
-import AgentWorkflowPanel from "@/components/AgentWorkflowPanel";
+import { agentScripts } from "@/lib/mock-data/agent-scripts";
+import InlineAgentWorkflow from "@/components/InlineAgentWorkflow";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import logo from "@/assets/Probe Logo.png";
 
 import ConnectorsSidebar from "@/components/ConnectorsSidebar";
 
+const getSuggestions = (text: string) => {
+  if (!text.trim()) return [];
+  const lowerText = text.toLowerCase();
+
+  if (lowerText.startsWith("resea")) {
+    return [
+      "Research competitor pricing models",
+      "Research user onboarding drop-off reasons",
+      "Research new integration opportunities",
+    ];
+  }
+  if (
+    lowerText.startsWith("create jira ticket") ||
+    lowerText.startsWith("create ticket")
+  ) {
+    return [
+      "Create JIRA ticket for login failure",
+      "Create JIRA ticket for page speed regression",
+      "Create JIRA ticket for new onboarding flow",
+    ];
+  }
+  if (lowerText.startsWith("creat") || lowerText.startsWith("add")) {
+    return [
+      "Create new button on onboarding",
+      "Create experiment for signup flow",
+      "Create feature spec for dark mode",
+    ];
+  }
+  if (lowerText.startsWith("gener")) {
+    return [
+      "Generate features for an AI assistant",
+      "Generate features to improve retention",
+      "Generate features for enterprise customers",
+    ];
+  }
+  if (lowerText.startsWith("latest") || lowerText.startsWith("show")) {
+    return [
+      "Latest updates on key metrics",
+      "Latest updates on active experiments",
+      "Latest updates from product team",
+    ];
+  }
+  if (
+    lowerText.startsWith("track") ||
+    lowerText.startsWith("monitor") ||
+    lowerText.startsWith("experi")
+  ) {
+    return [
+      "Track experiment: Social Proof on Signup Page",
+      "Track experiment: Simplified Checkout Flow",
+      "Track experiment: Mobile-First Pricing Page",
+    ];
+  }
+  if (lowerText.startsWith("why is")) {
+    return [
+      "Why is churn increasing in the enterprise segment?",
+      "Why is activation rate higher for social signups?",
+      "Why is the new onboarding flow underperforming?",
+      "Why is Sunday the highest engagement day?",
+    ];
+  }
+  return [];
+};
+
 function AgentPageInner() {
   const searchParams = useSearchParams();
-  const { runScript, runLive, resetAgent, conversation, isRunning } =
-    useAgentStore();
+  const { runScript, runLive, conversation, isRunning } = useAgentStore();
   const [isConnectorsOpen, setIsConnectorsOpen] = useState(true);
   const [inputValue, setInputValue] = useState("");
-  const [webEnabled, setWebEnabled] = useState(true);
-  const [searchMode, setSearchMode] = useState<"fast" | "deep">("fast");
-  const [searchFlowOpen, setSearchFlowOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const hasAutoRun = useRef(false);
+
+  const suggestions = getSuggestions(inputValue);
 
   useEffect(() => {
     const scriptParam = searchParams.get("script");
@@ -74,10 +135,6 @@ function AgentPageInner() {
     if (!text || isRunning) return;
     setInputValue("");
     runLive(text);
-  };
-
-  const handlePillClick = (scriptId: string, queryText: string) => {
-    runScript(scriptId, queryText);
   };
 
   const formatResponse = (text: string) => {
@@ -163,330 +220,342 @@ function AgentPageInner() {
               Chat
             </h1>
           </div>
-          <div className="flex items-center gap-4">
-            {conversation.length > 0 && (
-              <button
-                onClick={() => resetAgent()}
-                className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reset
-              </button>
-            )}
-            <button
-              onClick={() => setSearchFlowOpen(!searchFlowOpen)}
-              className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
-              title={searchFlowOpen ? "Hide search flow" : "Show search flow"}
-            >
-              {searchFlowOpen ? (
-                <PanelRightClose className="w-4 h-4" />
-              ) : (
-                <PanelRightOpen className="w-4 h-4" />
-              )}
-            </button>
-          </div>
+          <div className="flex items-center gap-4"></div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto xl:px-8 lg:px-6 px-6 py-8 space-y-12">
-          {conversation.length === 0 && (
-            <div className="max-w-2xl mx-auto space-y-8 mt-12">
-              <div className="text-center space-y-3">
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                  How can I help you today?
-                </h2>
-                <p className="text-slate-500 text-base max-w-md mx-auto leading-relaxed font-medium">
-                  {isConnectorsOpen
-                    ? "Select your data connectors on the left and ask me anything about your product, users, or performance."
-                    : "Expand your connectors panel on the left to see and select your data sources."}
-                </p>
-              </div>
+        {conversation.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 lg:px-8 -mt-20">
+            <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight text-center mb-10 font-playfair">
+              What are we working on today?
+            </h2>
 
-              <div className="grid grid-cols-1 gap-4 pt-6">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">
-                  Suggested queries
-                </p>
-                <QuickQueryPills layout="wrap" onPillClick={handlePillClick} />
-              </div>
-
-              {/* Quick action cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-8">
-                <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mb-3">
-                    <Search className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">
-                    Investigate Issues
-                  </h3>
-                  <p className="text-xs text-slate-600">
-                    Ask me to analyze user sessions, conversion funnels, or
-                    performance issues
-                  </p>
-                </div>
-
-                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl">
-                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mb-3">
-                    <Zap className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">
-                    Design Experiments
-                  </h3>
-                  <p className="text-xs text-slate-600">
-                    Get help creating A/B tests, defining hypotheses, and
-                    measuring success
-                  </p>
-                </div>
-
-                <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-xl">
-                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center mb-3">
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-slate-900 mb-1">
-                    Get Insights
-                  </h3>
-                  <p className="text-xs text-slate-600">
-                    Discover patterns in your data and get recommendations for
-                    improvements
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="max-w-3xl mx-auto space-y-12">
-            <AnimatePresence>
-              {conversation.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shadow-sm",
-                        msg.role === "user"
-                          ? "bg-slate-200 text-slate-700 font-bold"
-                          : "bg-white border border-slate-100",
-                      )}
-                    >
-                      {msg.role === "user" ? (
-                        "U"
-                      ) : (
-                        <Image
-                          src={logo}
-                          alt="Probe Logo"
-                          width={28}
-                          height={28}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      {msg.role === "user" ? "You" : "Probe Agent"}
-                    </span>
-                  </div>
-
-                  <div
-                    className={cn(
-                      "text-base leading-relaxed",
-                      msg.role === "user"
-                        ? "font-bold text-slate-800"
-                        : "font-normal text-slate-600",
-                    )}
-                  >
-                    {msg.role === "user" ? (
-                      msg.content
-                    ) : (
-                      <div className="space-y-4 bg-white/50 border border-slate-100/50 p-4 rounded-2xl -ml-4 w-[calc(100%+2rem)]">
-                        {formatResponse(msg.content)}
-                      </div>
-                    )}
-                  </div>
-
-                  {msg.role === "agent" && (
-                    <div className="flex items-center gap-4 pt-2">
-                      <button className="text-xs font-semibold text-slate-400 hover:text-indigo-600 transition-colors">
-                        Save to note
-                      </button>
-                      <button className="text-xs font-semibold text-slate-400 hover:text-indigo-600 transition-colors">
-                        Share
-                      </button>
-                      <div className="flex items-center gap-2 ml-auto">
-                        <button className="p-1 px-2 rounded-md hover:bg-slate-100 transition-colors">
-                          <span className="text-xs grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all">
-                            👍
-                          </span>
-                        </button>
-                        <button className="p-1 px-2 rounded-md hover:bg-slate-100 transition-colors">
-                          <span className="text-xs grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all">
-                            👎
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {isRunning && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-2 pt-4"
-              >
-                <div className="w-7 h-7 rounded-full overflow-hidden bg-white flex items-center justify-center shadow-md animate-pulse border border-slate-100">
-                  <Image
-                    src={logo}
-                    alt="Probe Logo"
-                    width={28}
-                    height={28}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex items-center gap-1.5 px-4 py-2">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  />
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  />
-                  <span
-                    className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </div>
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <div className="xl:px-8 lg:px-6 px-6 py-6">
-          <div className="max-w-3xl mx-auto">
-            {/* Agent Options */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center bg-slate-100/50 p-1 rounded-2xl border border-slate-100 shadow-sm shadow-slate-200/50">
-                <button
-                  type="button"
-                  onClick={() => setWebEnabled(true)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all",
-                    webEnabled
-                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
-                      : "text-slate-400 hover:text-slate-600",
-                  )}
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  Web
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setWebEnabled(false)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all",
-                    !webEnabled
-                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
-                      : "text-slate-400 hover:text-slate-600",
-                  )}
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  No Web
-                </button>
-              </div>
-
-              <div className="flex items-center bg-slate-100/50 p-1 rounded-2xl border border-slate-100 shadow-sm shadow-slate-200/50">
-                <button
-                  type="button"
-                  onClick={() => setSearchMode("fast")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all",
-                    searchMode === "fast"
-                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
-                      : "text-slate-400 hover:text-slate-600",
-                  )}
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  Fast Search
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSearchMode("deep")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[11px] font-bold transition-all",
-                    searchMode === "deep"
-                      ? "bg-white text-indigo-600 shadow-sm border border-slate-200/50"
-                      : "text-slate-400 hover:text-slate-600",
-                  )}
-                >
-                  <Search className="w-3.5 h-3.5" />
-                  Deep Search
-                </button>
-              </div>
-            </div>
-
-            <div className="relative group">
+            <div className="w-full max-w-3xl relative group mb-6">
               <form
                 onSubmit={handleSubmit}
                 className="relative z-10 transition-all duration-300 transform group-focus-within:translate-y-[-2px]"
               >
-                <div className="absolute inset-0 bg-indigo-500/10 blur-2xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
-                <div className="relative bg-white border border-slate-200 rounded-3xl shadow-lg shadow-slate-200/50 group-focus-within:shadow-indigo-500/10 group-focus-within:border-indigo-500 transition-all overflow-hidden flex items-center">
-                  <input
+                <div className="absolute inset-0 bg-slate-900/5 blur-2xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
+                <div className="relative bg-white border border-slate-200/80 rounded-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] group-focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.06)] group-focus-within:border-slate-300 transition-all flex flex-col p-2">
+                  <textarea
                     ref={inputRef}
-                    type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Ask me anything about your product, users, or experiments..."
                     disabled={isRunning}
-                    className="flex-1 pl-6 pr-4 py-3.5 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-base font-medium disabled:opacity-50"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (inputValue.trim() && !isRunning) {
+                          handleSubmit();
+                        }
+                      }
+                    }}
+                    className="w-full resize-none bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-[15px] p-3 min-h-[60px]"
                   />
-                  <div className="flex items-center gap-2 pr-4">
-                    <div className="text-[10px] font-bold text-slate-400 px-2 py-1 bg-slate-100 rounded-md">
-                      {conversation.length === 0
-                        ? "Default"
-                        : `${conversation.length} msgs`}
+
+                  <AnimatePresence>
+                    {suggestions.length > 0 && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="flex flex-col gap-1 overflow-hidden"
+                      >
+                        <div className="pt-2 pb-1 border-t border-slate-100/60 mt-2 px-2">
+                          {suggestions.map((suggestion, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setInputValue("");
+                                runLive(suggestion);
+                              }}
+                              className="w-full text-left px-3 py-2 text-[14px] text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors flex flex-col"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-2 px-1">
+                      {/* Perplexity-style bottom action button (e.g. Focus) */}
+                      {/* Focus button removed */}
                     </div>
-                    <button
-                      type="submit"
-                      disabled={!inputValue.trim() || isRunning}
-                      className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-600/20 active:scale-95"
-                    >
-                      <Send className="w-4 h-4 translate-x-0.5 -translate-y-0.5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="submit"
+                        disabled={!inputValue.trim() || isRunning}
+                        className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </form>
-              <p className="text-[11px] text-slate-400 text-center mt-4 font-semibold tracking-wide uppercase">
-                Probe can be inaccurate; please double check its responses.
-              </p>
+            </div>
+
+            {/* Options below the search bar */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-3xl w-full">
+              {[
+                {
+                  label: "Discover",
+                  icon: Compass,
+                  prefix: "Why is ",
+                },
+                {
+                  label: "Research",
+                  icon: Search,
+                  prefix: "Research ",
+                },
+                {
+                  label: "Create Experiment",
+                  icon: FlaskConical,
+                  prefix: "Create ",
+                },
+                {
+                  label: "Generate Features",
+                  icon: Code,
+                  prefix: "Generate features ",
+                },
+                {
+                  label: "Create JIRA ticket",
+                  icon: Ticket,
+                  prefix: "Create JIRA ticket for ",
+                },
+                {
+                  label: "Latest Updates",
+                  icon: Activity,
+                  prefix: "Latest updates ",
+                },
+                {
+                  label: "Monitor Experiments",
+                  icon: LineChart,
+                  prefix: "Track experiment ",
+                },
+              ].map((pill, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setInputValue(pill.prefix);
+                    inputRef.current?.focus();
+                  }}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-all text-[13px] font-medium shadow-sm hover:shadow"
+                >
+                  <pill.icon className="w-3.5 h-3.5 text-slate-400" />
+                  {pill.label}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto xl:px-8 lg:px-6 px-6 py-8 space-y-12">
+            <div className="max-w-3xl mx-auto space-y-12">
+              <AnimatePresence>
+                {conversation.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shadow-sm",
+                          msg.role === "user"
+                            ? "bg-slate-200 text-slate-700 font-bold"
+                            : "bg-white border border-slate-100",
+                        )}
+                      >
+                        {msg.role === "user" ? (
+                          "U"
+                        ) : (
+                          <Image
+                            src={logo}
+                            alt="Probe Logo"
+                            width={28}
+                            height={28}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        {msg.role === "user" ? "You" : "Probe Agent"}
+                      </span>
+                    </div>
+
+                    <div
+                      className={cn(
+                        "text-base leading-relaxed",
+                        msg.role === "user"
+                          ? "font-bold text-slate-800"
+                          : "font-normal text-slate-600",
+                      )}
+                    >
+                      {msg.role === "user" ? (
+                        msg.content
+                      ) : (
+                        <div className="space-y-4 bg-white/50 border border-slate-100/50 p-4 rounded-2xl -ml-4 w-[calc(100%+2rem)]">
+                          {(() => {
+                            const script = msg.scriptId
+                              ? agentScripts.find((s) => s.id === msg.scriptId)
+                              : null;
+                            return script ? (
+                              <>
+                                <InlineAgentWorkflow
+                                  steps={script.steps}
+                                  isComplete={true}
+                                  query={script.query}
+                                />
+                                {formatResponse(msg.content)}
+                              </>
+                            ) : (
+                              formatResponse(msg.content)
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+
+                    {msg.role === "agent" && (
+                      <div className="flex items-center gap-4 pt-2">
+                        <button className="text-xs font-semibold text-slate-400 hover:text-indigo-600 transition-colors">
+                          Save to note
+                        </button>
+                        <button className="text-xs font-semibold text-slate-400 hover:text-indigo-600 transition-colors">
+                          Share
+                        </button>
+                        <div className="flex items-center gap-2 ml-auto">
+                          <button className="p-1 px-2 rounded-md hover:bg-slate-100 transition-colors">
+                            <span className="text-xs grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all">
+                              👍
+                            </span>
+                          </button>
+                          <button className="p-1 px-2 rounded-md hover:bg-slate-100 transition-colors">
+                            <span className="text-xs grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all">
+                              👎
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {isRunning && useAgentStore.getState().activeScript && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="pt-4"
+                >
+                  <InlineAgentWorkflow
+                    steps={useAgentStore.getState().activeScript!.steps}
+                    stepStatuses={useAgentStore.getState().stepStatuses}
+                    isComplete={false}
+                    query={useAgentStore.getState().activeScript!.query}
+                  />
+                </motion.div>
+              )}
+            </div>
+
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* Input when conversation > 0 */}
+        {conversation.length > 0 && (
+          <div className="xl:px-8 lg:px-6 px-6 py-4 border-t border-slate-100 bg-white">
+            <div className="max-w-3xl mx-auto">
+              <div className="relative group">
+                <form
+                  onSubmit={handleSubmit}
+                  className="relative z-10 transition-all duration-300 transform group-focus-within:translate-y-[-2px]"
+                >
+                  <div className="absolute inset-0 bg-slate-900/5 blur-2xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
+                  <div className="relative bg-white border border-slate-200/80 rounded-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] group-focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.06)] group-focus-within:border-slate-300 transition-all flex flex-col p-2">
+                    <textarea
+                      ref={inputRef}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder="Ask me anything about your product, users, or experiments..."
+                      disabled={isRunning}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (inputValue.trim() && !isRunning) {
+                            handleSubmit();
+                          }
+                        }
+                      }}
+                      className="w-full resize-none bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-[15px] p-3 min-h-[50px]"
+                    />
+
+                    <AnimatePresence>
+                      {suggestions.length > 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="flex flex-col gap-1 overflow-hidden"
+                        >
+                          <div className="pt-2 pb-1 border-t border-slate-100/60 mt-2 px-2">
+                            {suggestions.map((suggestion, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  setInputValue("");
+                                  runLive(suggestion);
+                                }}
+                                className="w-full text-left px-3 py-2 text-[14px] text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors flex flex-col"
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-2 px-1">
+                        {/* Focus button removed */}
+                      </div>
+                      <div className="flex items-center gap-2 pr-2">
+                        <div className="text-[10px] font-bold text-slate-400 px-2 py-1 bg-slate-100 rounded-md">
+                          {conversation.length} msgs
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={!inputValue.trim() || isRunning}
+                          className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
+                        >
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+                <div className="flex items-center justify-center mt-2.5">
+                  <p className="text-[11px] text-slate-400 font-medium tracking-wide">
+                    Probe can make mistakes. Consider verifying important
+                    information.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Right panel: Search Flow (Visual) */}
-      <AnimatePresence>
-        {conversation.length > 0 && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "auto", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="xl:w-[320px] lg:w-[280px] w-[280px] bg-slate-50 border-l border-slate-200 overflow-hidden flex-shrink-0"
-          >
-            <div className="w-[280px] lg:w-[280px] xl:w-[320px]">
-              <AgentWorkflowPanel />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Right panel removed as per user request */}
     </div>
   );
 }
