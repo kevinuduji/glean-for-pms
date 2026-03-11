@@ -96,3 +96,14 @@ export type UserContext = {
   teamMemberships: Array<{ teamId: string; teamRole: TeamRole }>;
   folderMemberships: Array<{ folderId: string; folderRole: FolderRole }>;
 };
+
+export type PendingInvite = {
+  id: string;
+  workspaceId: string;
+  email: string;
+  role: WorkspaceRole;
+  teamId?: string;
+  invitedBy: string;
+  invitedAt: string;
+  token: string;
+};

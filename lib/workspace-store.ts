@@ -6,6 +6,7 @@ import type {
   Workspace,
   Team,
   TeamMember,
+  WorkspaceMember,
   Folder,
   FolderMember,
   FolderItem,
@@ -14,6 +15,7 @@ import type {
   FolderRole,
   WorkspaceRole,
   UserContext,
+  PendingInvite,
 } from '@/lib/types/workspace';
 import {
   USERS,
@@ -24,6 +26,7 @@ import {
   SEED_FOLDERS,
   SEED_FOLDER_MEMBERS,
   SEED_FOLDER_ITEMS,
+  SEED_PENDING_INVITES,
 } from '@/lib/mock-data/workspace';
 
 const CURRENT_USER_ID = 'user-kevin';
@@ -38,8 +41,14 @@ type WorkspaceStore = {
   activeTeamId: string | null;
   activeFolderId: string | null;
 
+  // ── Debug overrides (for testing roles/plans) ────────────────────────
+  debugRole: WorkspaceRole | null;
+  debugPlan: Workspace['plan'] | null;
+
   // ── Mutable state (persisted) ────────────────────────────────────────
   workspaces: Workspace[];
+  workspaceMembers: WorkspaceMember[];
+  pendingInvites: PendingInvite[];
   teams: Team[];
   folders: Folder[];
   teamMembers: TeamMember[];
@@ -49,6 +58,12 @@ type WorkspaceStore = {
   // ── Selectors ────────────────────────────────────────────────────────
   getUserContext: () => UserContext;
   getWorkspaceRole: () => WorkspaceRole;
+  getActivePlan: () => Workspace['plan'];
+  getConnectorLimit: () => number | null; // null = unlimited
+  canManageMembers: () => boolean;
+  canManageConnectors: () => boolean;
+  canManageBilling: () => boolean;
+  isWorkspaceAdmin: () => boolean;
   canSeeTeam: (teamId: string) => boolean;
   canSeeFolder: (folderId: string) => boolean;
   canEditFolder: (folderId: string) => boolean;
@@ -61,14 +76,19 @@ type WorkspaceStore = {
   getAllTeamMembers: (teamId: string) => TeamMember[];
   getFolderMembers: (folderId: string) => FolderMember[];
   isTeamMember: (teamId: string) => boolean;
+  getWorkspaceMembersWithUsers: () => Array<WorkspaceMember & { user: typeof USERS[number] }>;
+  getWorkspacesForUser: () => Workspace[];
+  getPendingInvites: (workspaceId?: string) => PendingInvite[];
 
   // ── Actions ──────────────────────────────────────────────────────────
   setActiveWorkspace: (id: string) => void;
   setActiveTeam: (id: string | null) => void;
   setActiveFolder: (id: string | null) => void;
-  createWorkspace: (name: string, color: string) => string;
+  setDebugRole: (role: WorkspaceRole | null) => void;
+  setDebugPlan: (plan: Workspace['plan'] | null) => void;
+  createWorkspace: (name: string, color: string, plan?: Workspace['plan']) => string;
   deleteWorkspace: (id: string) => void;
-  updateWorkspace: (id: string, updates: Partial<Pick<Workspace, 'name' | 'logoColor' | 'visibility'>>) => void;
+  updateWorkspace: (id: string, updates: Partial<Pick<Workspace, 'name' | 'logoColor' | 'visibility' | 'plan'>>) => void;
   createTeam: (input: { name: string; description: string; color: string; icon: string; visibility: Visibility }) => string;
   deleteTeam: (id: string) => void;
   updateTeam: (id: string, updates: Partial<Pick<Team, 'name' | 'description' | 'color' | 'icon' | 'visibility'>>) => void;
@@ -77,6 +97,9 @@ type WorkspaceStore = {
   removeTeamMember: (teamId: string, userId: string) => void;
   changeTeamMemberRole: (teamId: string, userId: string, role: TeamRole) => void;
   changeWorkspaceMemberRole: (userId: string, role: WorkspaceRole) => void;
+  removeWorkspaceMember: (userId: string) => void;
+  inviteMember: (email: string, role: WorkspaceRole, teamId?: string) => void;
+  revokeInvite: (inviteId: string) => void;
   createFolder: (teamId: string, input: { name: string; description: string; color: string; visibility: Visibility }) => string;
   deleteFolder: (id: string) => void;
   updateFolder: (id: string, updates: Partial<Pick<Folder, 'name' | 'description' | 'color' | 'visibility'>>) => void;
@@ -98,8 +121,12 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       activeWorkspaceId: 'ws-probe',
       activeTeamId: null,
       activeFolderId: null,
+      debugRole: null,
+      debugPlan: null,
 
       workspaces: SEED_WORKSPACES,
+      workspaceMembers: SEED_WORKSPACE_MEMBERS,
+      pendingInvites: SEED_PENDING_INVITES,
       teams: SEED_TEAMS,
       folders: SEED_FOLDERS,
       teamMembers: SEED_TEAM_MEMBERS,
@@ -109,12 +136,32 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       // ── Selectors ──────────────────────────────────────────────────────
 
       getWorkspaceRole: () => {
-        const { currentUserId, activeWorkspaceId } = get();
-        const membership = SEED_WORKSPACE_MEMBERS.find(
+        const { currentUserId, activeWorkspaceId, workspaceMembers, debugRole } = get();
+        if (debugRole) return debugRole;
+        const membership = workspaceMembers.find(
           (m) => m.userId === currentUserId && m.workspaceId === activeWorkspaceId
         );
         return membership?.role ?? 'viewer';
       },
+
+      getActivePlan: () => {
+        const { workspaces, activeWorkspaceId, debugPlan } = get();
+        if (debugPlan) return debugPlan;
+        const ws = workspaces.find((w) => w.id === activeWorkspaceId);
+        return ws?.plan ?? 'free';
+      },
+
+      getConnectorLimit: () => {
+        const plan = get().getActivePlan();
+        if (plan === 'free') return 2;
+        return null; // unlimited
+      },
+
+      canManageMembers: () => get().isWorkspaceAdmin(),
+      canManageConnectors: () => get().isWorkspaceAdmin(),
+      canManageBilling: () => get().isWorkspaceAdmin(),
+
+      isWorkspaceAdmin: () => get().getWorkspaceRole() === 'admin',
 
       getUserContext: () => {
         const { currentUserId, teamMembers, folderMembers } = get();
@@ -150,11 +197,8 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
         if (workspaceRole === 'admin') return true;
         const folder = folders.find((f) => f.id === folderId);
         if (!folder) return false;
-        // Team members see all folders in their team
         if (get().isTeamMember(folder.teamId)) return true;
-        // Public folder visible if the user can see the team
         if (folder.visibility === 'public' && get().canSeeTeam(folder.teamId)) return true;
-        // Private folder: only explicit folder members
         return folderMembers.some((m) => m.userId === currentUserId && m.folderId === folderId);
       },
 
@@ -164,12 +208,10 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
         if (workspaceRole === 'admin') return true;
         const folder = folders.find((f) => f.id === folderId);
         if (!folder) return false;
-        // Team lead can edit all folders in their team
         const teamMembership = teamMembers.find(
           (m) => m.userId === currentUserId && m.teamId === folder.teamId
         );
         if (teamMembership?.role === 'lead') return true;
-        // Explicit folder editor
         return folderMembers.some(
           (m) => m.userId === currentUserId && m.folderId === folderId && m.role === 'editor'
         );
@@ -221,13 +263,37 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
         return get().folderMembers.filter((m) => m.folderId === folderId);
       },
 
+      getWorkspaceMembersWithUsers: () => {
+        const { workspaceMembers, activeWorkspaceId } = get();
+        return workspaceMembers
+          .filter((m) => m.workspaceId === activeWorkspaceId)
+          .map((m) => ({ ...m, user: USERS.find((u) => u.id === m.userId)! }))
+          .filter((m) => !!m.user);
+      },
+
+      getWorkspacesForUser: () => {
+        const { workspaces, workspaceMembers, currentUserId } = get();
+        const memberOf = workspaceMembers
+          .filter((m) => m.userId === currentUserId)
+          .map((m) => m.workspaceId);
+        return workspaces.filter((w) => memberOf.includes(w.id));
+      },
+
+      getPendingInvites: (workspaceId) => {
+        const id = workspaceId ?? get().activeWorkspaceId;
+        return get().pendingInvites.filter((i) => i.workspaceId === id);
+      },
+
       // ── Actions ────────────────────────────────────────────────────────
 
       setActiveWorkspace: (id) => set({ activeWorkspaceId: id, activeTeamId: null, activeFolderId: null }),
       setActiveTeam: (id) => set({ activeTeamId: id, activeFolderId: null }),
       setActiveFolder: (id) => set({ activeFolderId: id }),
 
-      createWorkspace: (name, color) => {
+      setDebugRole: (role) => set({ debugRole: role }),
+      setDebugPlan: (plan) => set({ debugPlan: plan }),
+
+      createWorkspace: (name, color, plan = 'free') => {
         const id = `ws-${Date.now()}`;
         const slug = name.toLowerCase().replace(/\s+/g, '-');
         const workspace: Workspace = {
@@ -236,18 +302,29 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
           slug,
           logoInitial: name[0]?.toUpperCase() ?? 'W',
           logoColor: color,
-          plan: 'free',
+          plan,
           visibility: 'private',
           createdAt: new Date().toISOString(),
           createdBy: CURRENT_USER_ID,
         };
-        set((s) => ({ workspaces: [...s.workspaces, workspace] }));
+        const membership: WorkspaceMember = {
+          userId: CURRENT_USER_ID,
+          workspaceId: id,
+          role: 'admin',
+          joinedAt: new Date().toISOString(),
+        };
+        set((s) => ({
+          workspaces: [...s.workspaces, workspace],
+          workspaceMembers: [...s.workspaceMembers, membership],
+        }));
         return id;
       },
 
       deleteWorkspace: (id) => {
         set((s) => ({
           workspaces: s.workspaces.filter((w) => w.id !== id),
+          workspaceMembers: s.workspaceMembers.filter((m) => m.workspaceId !== id),
+          pendingInvites: s.pendingInvites.filter((i) => i.workspaceId !== id),
           activeWorkspaceId: s.activeWorkspaceId === id ? 'ws-probe' : s.activeWorkspaceId,
         }));
       },
@@ -309,23 +386,16 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       },
 
       addTeamMember: (teamId, userId, role) => {
-        const exists = get().teamMembers.some(
-          (m) => m.teamId === teamId && m.userId === userId
-        );
+        const exists = get().teamMembers.some((m) => m.teamId === teamId && m.userId === userId);
         if (exists) return;
         set((s) => ({
-          teamMembers: [
-            ...s.teamMembers,
-            { userId, teamId, role, joinedAt: new Date().toISOString() },
-          ],
+          teamMembers: [...s.teamMembers, { userId, teamId, role, joinedAt: new Date().toISOString() }],
         }));
       },
 
       removeTeamMember: (teamId, userId) => {
         set((s) => ({
-          teamMembers: s.teamMembers.filter(
-            (m) => !(m.teamId === teamId && m.userId === userId)
-          ),
+          teamMembers: s.teamMembers.filter((m) => !(m.teamId === teamId && m.userId === userId)),
         }));
       },
 
@@ -338,9 +408,41 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       },
 
       changeWorkspaceMemberRole: (userId, role) => {
-        // In mock mode we update the in-memory seed copy via a local override approach
-        // Real implementation would call an API
-        console.log(`[mock] change ${userId} to ${role}`);
+        const { activeWorkspaceId } = get();
+        set((s) => ({
+          workspaceMembers: s.workspaceMembers.map((m) =>
+            m.userId === userId && m.workspaceId === activeWorkspaceId ? { ...m, role } : m
+          ),
+        }));
+      },
+
+      removeWorkspaceMember: (userId) => {
+        const { activeWorkspaceId } = get();
+        set((s) => ({
+          workspaceMembers: s.workspaceMembers.filter(
+            (m) => !(m.userId === userId && m.workspaceId === activeWorkspaceId)
+          ),
+          teamMembers: s.teamMembers.filter((m) => m.userId !== userId),
+        }));
+      },
+
+      inviteMember: (email, role, teamId) => {
+        const { activeWorkspaceId } = get();
+        const invite: PendingInvite = {
+          id: `invite-${Date.now()}`,
+          workspaceId: activeWorkspaceId,
+          email,
+          role,
+          teamId,
+          invitedBy: CURRENT_USER_ID,
+          invitedAt: new Date().toISOString(),
+          token: `tok_${Math.random().toString(36).slice(2, 10)}`,
+        };
+        set((s) => ({ pendingInvites: [...s.pendingInvites, invite] }));
+      },
+
+      revokeInvite: (inviteId) => {
+        set((s) => ({ pendingInvites: s.pendingInvites.filter((i) => i.id !== inviteId) }));
       },
 
       createFolder: (teamId, input) => {
@@ -383,23 +485,16 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       },
 
       addFolderMember: (folderId, userId, role) => {
-        const exists = get().folderMembers.some(
-          (m) => m.folderId === folderId && m.userId === userId
-        );
+        const exists = get().folderMembers.some((m) => m.folderId === folderId && m.userId === userId);
         if (exists) return;
         set((s) => ({
-          folderMembers: [
-            ...s.folderMembers,
-            { userId, folderId, role, joinedAt: new Date().toISOString() },
-          ],
+          folderMembers: [...s.folderMembers, { userId, folderId, role, joinedAt: new Date().toISOString() }],
         }));
       },
 
       removeFolderMember: (folderId, userId) => {
         set((s) => ({
-          folderMembers: s.folderMembers.filter(
-            (m) => !(m.folderId === folderId && m.userId === userId)
-          ),
+          folderMembers: s.folderMembers.filter((m) => !(m.folderId === folderId && m.userId === userId)),
         }));
       },
 
@@ -435,13 +530,16 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       getAvailableIcons: () => TEAM_ICONS,
     }),
     {
-      name: 'workspace-store-v1',
-      // Only persist mutable state, not static seed data
+      name: 'workspace-store-v2',
       partialize: (state) => ({
         activeWorkspaceId: state.activeWorkspaceId,
         activeTeamId: state.activeTeamId,
         activeFolderId: state.activeFolderId,
+        debugRole: state.debugRole,
+        debugPlan: state.debugPlan,
         workspaces: state.workspaces,
+        workspaceMembers: state.workspaceMembers,
+        pendingInvites: state.pendingInvites,
         teams: state.teams,
         folders: state.folders,
         teamMembers: state.teamMembers,
