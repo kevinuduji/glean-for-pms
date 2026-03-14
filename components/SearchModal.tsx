@@ -7,6 +7,7 @@ import {
   SquarePen,
 } from "lucide-react";
 import { useAgentStore } from "@/lib/store";
+import { useProjectStore } from "@/lib/project-store";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -27,11 +28,12 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const {
     savedChats,
-    projects,
     loadChat,
     resetAgent,
     setQuery: setAgentQuery,
   } = useAgentStore();
+  const { getJoinedProjects } = useProjectStore();
+  const projects = getJoinedProjects();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 

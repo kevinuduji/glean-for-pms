@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -30,6 +30,8 @@ import {
   Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useProjectStore } from "@/lib/project-store";
+import { getProjectData } from "@/lib/mock-data/project-data";
 
 // ─── Connector Badge ────────────────────────────────────────────────────────────
 
@@ -106,11 +108,11 @@ import { ActionButton } from "@/components/ui/ActionButton";
 
 // ─── Mock Data: Product Health ──────────────────────────────────────────────────
 
-function generateDailyData(days: number) {
+function generateDailyData(days: number, dauSeed = 4200, revenueSeed = 82000) {
   const data = [];
   const now = new Date();
-  let dau = 4200;
-  let revenue = 82000;
+  let dau = dauSeed;
+  let revenue = revenueSeed;
 
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(now);
@@ -118,12 +120,12 @@ function generateDailyData(days: number) {
     const dayOfWeek = date.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-    const dauNoise = Math.round((Math.random() - 0.4) * 300);
-    const weekendDip = isWeekend ? -600 : 0;
-    dau = Math.max(2800, Math.min(6200, dau + dauNoise + weekendDip + 15));
+    const dauNoise = Math.round((Math.random() - 0.4) * (dauSeed * 0.07));
+    const weekendDip = isWeekend ? -Math.round(dauSeed * 0.12) : 0;
+    dau = Math.max(Math.round(dauSeed * 0.55), Math.min(Math.round(dauSeed * 1.2), dau + dauNoise + weekendDip + Math.round(dauSeed * 0.003)));
 
-    const revNoise = Math.round((Math.random() - 0.45) * 4000);
-    revenue = Math.max(60000, Math.min(120000, revenue + revNoise + 200));
+    const revNoise = Math.round((Math.random() - 0.45) * (revenueSeed * 0.05));
+    revenue = Math.max(Math.round(revenueSeed * 0.75), Math.min(Math.round(revenueSeed * 1.3), revenue + revNoise + Math.round(revenueSeed * 0.002)));
 
     data.push({
       date: `${date.getMonth() + 1}/${date.getDate()}`,
@@ -137,37 +139,16 @@ function generateDailyData(days: number) {
   return data;
 }
 
-const dailyData = generateDailyData(30);
-const latest = dailyData[dailyData.length - 1];
-const weekAgo = dailyData[dailyData.length - 8];
-
-function generateMonthlyRevenue() {
+function generateMonthlyRevenue(mrrSeed = 62000) {
   const months = ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"];
-  let mrr = 62000;
+  let mrr = Math.round(mrrSeed * 0.53);
+  const step = Math.round(mrrSeed * 0.04);
   return months.map((month) => {
-    mrr += Math.round(3000 + Math.random() * 5000);
+    mrr += Math.round(step + Math.random() * step);
     return { month, mrr };
   });
 }
 
-const monthlyRevenue = generateMonthlyRevenue();
-
-const featureUsage = [
-  { feature: "Dashboard", users: 3840, pctOfDAU: 91 },
-  { feature: "Search", users: 2940, pctOfDAU: 70 },
-  { feature: "Reports", users: 2100, pctOfDAU: 50 },
-  { feature: "Settings", users: 1680, pctOfDAU: 40 },
-  { feature: "API", users: 1260, pctOfDAU: 30 },
-  { feature: "Integrations", users: 840, pctOfDAU: 20 },
-];
-
-const conversionFunnel = [
-  { step: "Visit", count: 28400, pct: 100 },
-  { step: "Signup Start", count: 4260, pct: 15 },
-  { step: "Signup Complete", count: 2840, pct: 10 },
-  { step: "Activation", count: 1704, pct: 6 },
-  { step: "Paid Conversion", count: 568, pct: 2 },
-];
 
 // ─── KPI Helper ─────────────────────────────────────────────────────────────────
 
@@ -264,22 +245,24 @@ function ChartCard({
 
 export default function OverviewPage() {
   const [selectedTab, setSelectedTab] = useState<"health" | "impact">("health");
+  const { activeProjectId } = useProjectStore();
+  const wsKpis = getProjectData(activeProjectId).overview;
 
-  const dauChange = +(((latest.dau - weekAgo.dau) / weekAgo.dau) * 100).toFixed(
-    1,
-  );
-  const revenueChange = +(
-    ((latest.revenue - weekAgo.revenue) / weekAgo.revenue) *
-    100
-  ).toFixed(1);
-  const errorChange = +(
-    ((latest.errorRate - weekAgo.errorRate) / weekAgo.errorRate) *
-    100
-  ).toFixed(1);
-  const latencyChange = +(
-    ((latest.p95Latency - weekAgo.p95Latency) / weekAgo.p95Latency) *
-    100
-  ).toFixed(1);
+  const { dailyData, monthlyRevenue, featureUsage, conversionFunnel } = useMemo(() => {
+    const daily = generateDailyData(30, wsKpis.dauSeed, wsKpis.mrrSeed);
+    return {
+      dailyData: daily,
+      monthlyRevenue: generateMonthlyRevenue(wsKpis.mrrSeed),
+      featureUsage: wsKpis.featureUsage,
+      conversionFunnel: wsKpis.conversionFunnel,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
+
+  const dauChange = wsKpis.dauChange;
+  const revenueChange = wsKpis.mrrChange;
+  const errorChange = -wsKpis.errorRateChange;
+  const latencyChange = -wsKpis.p95LatencyChange;
 
   function handleExportReport() {
     console.log("Exporting report");
@@ -307,23 +290,19 @@ export default function OverviewPage() {
           <div className="flex items-center gap-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-slate-900">
-                {latest.dau.toLocaleString()}
+                {wsKpis.dauLabel}
               </div>
               <div className="text-xs text-slate-500">DAU Today</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                $
-                {(monthlyRevenue[monthlyRevenue.length - 1].mrr / 1000).toFixed(
-                  0,
-                )}
-                K
+                {wsKpis.mrrLabel}
               </div>
               <div className="text-xs text-slate-500">MRR</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-indigo-600">
-                {latest.p95Latency}ms
+                {wsKpis.p95Latency}ms
               </div>
               <div className="text-xs text-slate-500">P95 Latency</div>
             </div>
@@ -396,7 +375,7 @@ export default function OverviewPage() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                   <KPICard
                     label="Daily Active Users"
-                    value={latest.dau.toLocaleString()}
+                    value={wsKpis.dauLabel}
                     change={dauChange}
                     changeLabel="vs last week"
                     icon={Users}
@@ -405,7 +384,7 @@ export default function OverviewPage() {
                   />
                   <KPICard
                     label="Monthly Revenue"
-                    value={`$${(monthlyRevenue[monthlyRevenue.length - 1].mrr / 1000).toFixed(0)}K`}
+                    value={wsKpis.mrrLabel}
                     change={revenueChange}
                     changeLabel="vs last week"
                     icon={DollarSign}
@@ -414,7 +393,7 @@ export default function OverviewPage() {
                   />
                   <KPICard
                     label="Total Users"
-                    value="24,812"
+                    value={(wsKpis.dauSeed * 4.8).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     change={3.2}
                     changeLabel="vs last month"
                     icon={Users}
@@ -423,8 +402,8 @@ export default function OverviewPage() {
                   />
                   <KPICard
                     label="Conversion Rate"
-                    value="2.0%"
-                    change={8.4}
+                    value={`${wsKpis.conversionPct}%`}
+                    change={wsKpis.conversionChange}
                     changeLabel="vs last month"
                     icon={MousePointerClick}
                     color="bg-violet-600"
@@ -432,8 +411,8 @@ export default function OverviewPage() {
                   />
                   <KPICard
                     label="P95 Latency"
-                    value={`${latest.p95Latency}ms`}
-                    change={-latencyChange}
+                    value={`${wsKpis.p95Latency}ms`}
+                    change={latencyChange}
                     changeLabel="vs last week"
                     icon={Gauge}
                     color="bg-amber-600"
@@ -441,8 +420,8 @@ export default function OverviewPage() {
                   />
                   <KPICard
                     label="Error Rate"
-                    value={`${latest.errorRate}%`}
-                    change={-errorChange}
+                    value={`${wsKpis.errorRate}%`}
+                    change={errorChange}
                     changeLabel="vs last week"
                     icon={Activity}
                     color="bg-red-500"

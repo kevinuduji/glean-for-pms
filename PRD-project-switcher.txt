@@ -1,0 +1,510 @@
+================================================================================
+  PRD: Project System — Glean for PMs
+  Status: Ready for Implementation
+  Date: 2026-03-13
+================================================================================
+
+--------------------------------------------------------------------------------
+1. OVERVIEW
+--------------------------------------------------------------------------------
+
+We are simplifying the workspace system to a lightweight "Project" model.
+A project is the top-level organizational unit in the app — it represents
+a product or initiative the PM is actively tracking (e.g. "Mobile App",
+"B2B Tool"). Each logged-in user has one account and can own multiple projects.
+
+The previous workspace system (workspaces → teams → folders → items, with
+roles, plans, invites, and permissions) is being removed entirely. All of
+that complexity is out of scope for this version.
+
+What remains:
+  - One account per user (implicit, no UI concept of "account")
+  - Multiple projects per user
+  - A project switcher in the sidebar
+  - All app data scoped per project (KPIs, experiments, connectors,
+    discover items, chat history)
+
+--------------------------------------------------------------------------------
+2. GOALS
+--------------------------------------------------------------------------------
+
+  1. Give PMs a way to work across multiple products without mixing data.
+  2. Make project switching instant and obvious in the sidebar.
+  3. Keep the model dead simple — no roles, no sharing, no plans, no limits.
+  4. Lay a clean foundation to build on (auth, teams, sharing) in the future.
+
+--------------------------------------------------------------------------------
+3. NON-GOALS (explicitly out of scope)
+--------------------------------------------------------------------------------
+
+  - Inviting team members or collaborators
+  - Role-based permissions (admin / member / viewer)
+  - Plan tiers (free / pro / enterprise) and feature gating
+  - Teams and folders within a project
+  - Sharing or exporting projects
+  - Project archiving or soft-delete
+  - Cross-project views or dashboards
+
+--------------------------------------------------------------------------------
+4. DATA MODEL
+--------------------------------------------------------------------------------
+
+4.1 Project Type
+-----------------
+  type Project = {
+    id:        string;        // e.g. "project-mobile"
+    name:      string;        // e.g. "Mobile App"
+    color:     string;        // Tailwind color key: 'indigo' | 'emerald' | etc.
+    icon:      string | null; // Lucide icon name, or null to use first letter
+    createdAt: string;        // ISO timestamp
+  }
+
+4.2 Icon Fallback Rule
+-----------------------
+  If icon is null, the project avatar renders as:
+    - A rounded square in the project's color
+    - The first letter of the project name in white, centered
+  If icon is set, the project avatar renders as:
+    - A rounded square in the project's color
+    - The Lucide icon in white, centered
+
+4.3 Available Colors (9 options)
+----------------------------------
+  indigo · emerald · violet · rose · amber · sky · orange · teal · slate
+
+4.4 Available Icons (~18 options, product-relevant)
+-----------------------------------------------------
+  Smartphone · Globe · Rocket · Building2 · ShoppingCart · Zap · Shield
+  BarChart2 · Layers · Cpu · Users · Package · Target · Megaphone
+  CreditCard · Headphones · Settings2 · Store
+
+4.5 Project Store (Zustand)
+-----------------------------
+  State:
+    - projects: Project[]
+    - activeProjectId: string
+
+  Actions:
+    - setActiveProject(id: string)
+        Sets activeProjectId. Also clears activeChatId in agent store.
+        Chat history is filtered per project — switching projects shows
+        only chats belonging to that project.
+
+    - createProject(input: { name, color, icon }) => string
+        Generates a new project with a timestamp-based id.
+        Returns the new project id.
+        After creation, sets the new project as active.
+
+    - updateProject(id, updates: Partial<{name, color, icon}>)
+        Partial update to a project's display metadata.
+
+    - deleteProject(id)
+        Removes the project and all associated chat history.
+        If the deleted project was active AND projects.length > 0,
+        set the first remaining project as active.
+        If projects.length === 0 after deletion, set activeProjectId to ''.
+        A project may be deleted even if it is the only project.
+
+  Selectors:
+    - getActiveProject() => Project | undefined
+
+  Persistence:
+    - Persisted to localStorage under key 'project-store-v1'
+    - Persisted fields: projects, activeProjectId
+
+4.6 Chat History — Per-Project Scoping
+----------------------------------------
+  Chats in the agent store (lib/store.ts) already have a workspaceId field.
+  This field is renamed to projectId.
+
+  Behavior:
+    - When a new chat is saved, it is tagged with the current activeProjectId.
+    - The sidebar chat history section filters to only show chats where
+      chat.projectId === activeProjectId.
+    - Switching projects immediately filters the visible chat list.
+    - Active chat is cleared (resetAgent or set activeChatId to null)
+      when switching projects, so the user starts fresh in the new context.
+    - All chats are retained in localStorage regardless of project — they
+      are just not shown when a different project is active.
+
+--------------------------------------------------------------------------------
+5. EMPTY STATE — CREATE FIRST PROJECT
+--------------------------------------------------------------------------------
+
+5.1 Trigger
+------------
+  Shown when projects.length === 0 OR activeProjectId === ''.
+  This can happen:
+    a) First time the app loads (no projects exist yet)
+    b) User deletes their only project
+
+5.2 Layout
+-----------
+  Full-page centered screen (replaces the main app layout).
+  Not behind any sidebar — the sidebar is not shown in this state.
+
+  Content:
+    - App logo / wordmark at top
+    - Heading: "Create your first project"
+    - Subtext: "A project is your workspace for one product or initiative.
+                 You can create more and switch between them anytime."
+    - Inline create form (not a modal):
+        - Project Name input (required, placeholder: "e.g. Mobile App")
+        - Color picker (row of 9 color swatches, one selected at a time)
+        - Icon picker (optional — grid of 18 icons, clearable)
+        - Preview of the project avatar (updates live as user types/picks)
+        - "Create Project" button (disabled until name is non-empty)
+    - On submit: creates project, sets as active, redirects to /overview
+
+5.3 Design Notes
+-----------------
+  - The avatar preview should feel like the key visual on this screen —
+    it gives immediate feedback that the name + color + icon are working.
+  - Keep this screen minimal. No marketing copy. No feature list.
+    PMs know what they want to track; just get them started.
+
+--------------------------------------------------------------------------------
+6. CREATE PROJECT MODAL (new project from inside the app)
+--------------------------------------------------------------------------------
+
+6.1 Trigger
+------------
+  "＋ New Project" button at the bottom of the ProjectSwitcher dropdown.
+
+6.2 Content
+------------
+  Same fields as the first-project screen:
+    - Project Name input (required)
+    - Color picker
+    - Icon picker (optional)
+    - Live avatar preview
+    - "Create Project" primary button
+    - "Cancel" secondary button / click-outside to dismiss
+
+6.3 Behavior on Submit
+-----------------------
+  - Creates the project.
+  - Automatically switches to the new project.
+  - Closes the modal.
+  - Clears active chat (resets agent store).
+  - User lands on whatever page they were on, now in the new project context.
+
+--------------------------------------------------------------------------------
+7. PROJECT SWITCHER (sidebar component)
+--------------------------------------------------------------------------------
+
+7.1 Location
+-------------
+  Top of the sidebar, replacing the old WorkspaceSwitcher.
+  Appears in the same position. Same collapse behavior.
+
+7.2 Collapsed State
+--------------------
+  When the sidebar is collapsed (icon-only mode):
+  - Show only the active project's avatar (colored square + letter or icon).
+  - No text. No dropdown indicator.
+  - Clicking the avatar opens the switcher dropdown.
+
+7.3 Expanded State
+-------------------
+  Shows a button with:
+    - Active project avatar (colored square, letter or icon)
+    - Active project name (truncated if too long)
+    - ChevronDown icon on the right
+
+  Clicking the button opens a dropdown below it.
+
+7.4 Dropdown Contents
+----------------------
+  - List of all user's projects:
+      Each row: [avatar] [project name] [checkmark if active]
+      Clicking a row sets that project as active and closes the dropdown.
+
+  - Separator
+
+  - "＋ New Project" action at the bottom
+      Clicking opens the CreateProjectModal.
+
+7.5 Behavior
+-------------
+  - Click outside or select a project to close the dropdown.
+  - Switching project: sets activeProjectId, clears activeChatId, filters
+    chat history in sidebar to the new project.
+
+--------------------------------------------------------------------------------
+8. SIDEBAR CHANGES
+--------------------------------------------------------------------------------
+
+8.1 Remove
+-----------
+  - Teams section (entire block: header, team rows, folder sub-rows)
+  - DebugRoleSwitcher component
+  - PlanBadge from the user info section at the bottom
+
+8.2 Keep
+---------
+  - Collapse / expand toggle
+  - Search button (⌘K)
+  - Main nav items: Overview, New Chat, Experiments, Discover
+  - Chat History section (filtered by activeProjectId)
+  - Bottom nav: Connectors, Settings
+  - User avatar and name at the very bottom
+
+8.3 Chat History — Scoping
+---------------------------
+  The chat history section already filters by workspace. It will now filter
+  by projectId. No other change to the visual design of this section.
+
+--------------------------------------------------------------------------------
+9. MOCK DATA — TWO SEED PROJECTS
+--------------------------------------------------------------------------------
+
+Both projects ship as seed data and are pre-loaded into the store.
+They demonstrate realistic, differentiated data so the project switcher
+feels meaningful and the data is believable.
+
+9.1 Project: Mobile App
+------------------------
+  id: project-mobile
+  name: "Mobile App"
+  color: indigo
+  icon: Smartphone
+  createdAt: [static timestamp]
+
+  Overview — Product Health:
+    DAU:              18,500    (+6.2%)    [Firebase, Amplitude]
+    D7 Retention:     28%       (+1.4pp)   [Amplitude]
+    Crash-free:       99.1%     (+0.2pp)   [Firebase]
+    App Store Rating: 4.6 ★    (+0.1)     [App Store Connect]
+
+  Overview — Business Impact:
+    MAU:              142,000   (+11%)     [Amplitude]
+    In-app Revenue:   $52,800   (+9.3%)    [RevenueCat]
+    Push Opt-in Rate: 61%       (−2.1pp)   [Firebase]
+    Avg Session:      4m 22s    (+18s)     [Mixpanel]
+
+  Experiments:
+    Active:
+      - "Simplified Onboarding (5→3 Steps)"
+          Hypothesis: Reducing steps from 5 to 3 will improve D1 retention.
+          Traffic: 50/50 split. 12 days running. Stat sig: 91%.
+          Uplift: +4.2pp D1 retention on variant.
+      - "Push Notification Timing (6pm vs 8pm)"
+          Hypothesis: 8pm push will outperform 6pm for re-engagement.
+          Traffic: 50/50. 8 days running. Stat sig: 74%.
+    Queue:
+      - "Bottom Nav Reorder — Activity First"
+      - "Dark Mode Default for New Installs"
+    Ideas:
+      - "Daily Streak Gamification for Power Users"
+      - "Social Share on Achievement Unlock"
+    Archived:
+      - "Force Update Modal Variant" (inconclusive)
+      - "Splash Screen A/B" (shipped variant A)
+
+  Connectors (active):
+    Firebase · Amplitude · Mixpanel · App Store Connect · RevenueCat
+
+  Discover Signals:
+    🔴 Critical: "Step 3 onboarding drop-off spiked +23% this week"
+                  Sources: Amplitude, Firebase. Links to onboarding experiment.
+    🟡 High:     "iOS 17 users showing 0.8% crash rate on payment screen
+                  (vs 0.1% baseline)"
+                  Source: Firebase Crashlytics.
+    🟢 Medium:   "Power users spending 3× more time in Activity tab —
+                  underinvested surface vs. roadmap"
+                  Sources: Mixpanel, Amplitude.
+
+9.2 Project: B2B Tool
+----------------------
+  id: project-b2b
+  name: "B2B Tool"
+  color: emerald
+  icon: Building2
+  createdAt: [static timestamp, slightly earlier than mobile]
+
+  Overview — Product Health:
+    Trial-to-Paid:    22%       (+2.8pp)   [Stripe, HubSpot]
+    Feature Adoption: 68%       (+4pp)     [Mixpanel, Segment]
+    NPS:              +41       (+3)       [Intercom]
+    Time-to-Value:    3.2 days  (−0.8d)   [Segment]
+
+  Overview — Business Impact:
+    MRR:              $84,200   (+7.4%)    [Stripe]
+    ARR:              $1.01M    (+7.4%)    [Stripe]
+    Monthly Churn:    2.1%      (−0.3pp)   [Stripe]
+    Avg Contract Val: $1,840/yr (+$120)    [Salesforce]
+
+  Experiments:
+    Active:
+      - "Pricing Page: Annual Toggle Prominence"
+          Hypothesis: Making annual billing the default-selected option
+          will increase annual plan take rate from 31% to 40%+.
+          Traffic: 50/50. 19 days running. Stat sig: 96%.
+          Uplift: +9pp annual plan selection on variant.
+      - "Trial Extension Offer at Day 12"
+          Hypothesis: Offering 7-day extension to unconverted day-12 trials
+          will recover 15% of at-risk conversions.
+          Traffic: 70% control / 30% variant. 11 days running. Stat sig: 82%.
+    Queue:
+      - "In-app Upgrade Prompt After Feature Limit Hit"
+      - "Onboarding Checklist Redesign — Progress Bar First"
+    Ideas:
+      - "Expansion Revenue Email Sequence for Accounts >3 Seats"
+      - "Admin Dashboard Personalization (role-based layout)"
+    Archived:
+      - "Free Tier Feature Gating Test" (rolled back — negative NPS signal)
+      - "Referral Banner Placement" (shipped top-of-dashboard placement)
+
+  Connectors (active):
+    Salesforce · HubSpot · Intercom · Segment · Stripe · Mixpanel
+
+  Discover Signals:
+    🔴 Critical: "35% of trial users never complete integration setup —
+                  biggest drop-off before conversion"
+                  Sources: Segment, HubSpot. Conversion impact: est. −$8K MRR.
+    🟡 High:     "Accounts with 5+ seats show 4× lower churn — not reflected
+                  in current pricing or expansion motion"
+                  Sources: Salesforce, Stripe.
+    🟢 Medium:   "'Team Reports' feature has 8% adoption despite being
+                  the top-voted roadmap item for 2 consecutive quarters"
+                  Sources: Mixpanel, Intercom.
+
+--------------------------------------------------------------------------------
+10. SETTINGS — CHANGES
+--------------------------------------------------------------------------------
+
+10.1 Remove These Sections
+---------------------------
+  - Members (invite, manage roles, pending invites)
+  - Teams (create, edit, delete teams)
+  - Billing / Plan (plan tiers, upgrade prompts, connector limits)
+
+10.2 Keep / Rename These Sections
+-----------------------------------
+  - Project Settings:
+      - Rename project name
+      - Change project color
+      - Change project icon
+      - Delete project (with confirmation — warns if only project)
+
+  - Connectors:
+      - Unchanged from current behavior
+      - Now per-project (each project has independent connector set)
+      - Remove plan-based connector limits
+
+  - Account:
+      - User display name, avatar color
+      - (Auth settings placeholder)
+
+  - Capabilities / Usage / Privacy:
+      - Keep as-is if currently implemented; otherwise low priority
+
+10.3 Settings Navigation
+-------------------------
+  Left sidebar of settings will simplify to:
+    Project | Connectors | Account
+
+--------------------------------------------------------------------------------
+11. FILES CHANGED / CREATED / DELETED
+--------------------------------------------------------------------------------
+
+DELETED:
+  lib/types/workspace.ts
+  lib/workspace-store.ts
+  lib/mock-data/workspace.ts
+  components/DebugRoleSwitcher.tsx
+  components/PlanBadge.tsx
+  components/WorkspaceSwitcher.tsx
+
+CREATED:
+  lib/types/project.ts
+  lib/project-store.ts
+  lib/mock-data/projects.ts              (seed: 2 projects)
+  lib/mock-data/project-data.ts          (KPIs, experiments, connectors,
+                                          discover — keyed by projectId)
+  components/ProjectSwitcher.tsx
+  components/CreateProjectModal.tsx
+  app/(app)/onboarding/create-project/  (or full-page empty state component)
+
+UPDATED:
+  lib/store.ts                           (workspaceId → projectId on chats)
+  components/Sidebar.tsx                 (swap switcher, remove teams section,
+                                          remove DebugRoleSwitcher + PlanBadge,
+                                          filter chats by projectId)
+  app/(app)/overview/page.tsx            (useProjectStore, getProjectData)
+  app/(app)/experiments/page.tsx         (useProjectStore, getProjectData)
+  app/(app)/connectors/page.tsx          (useProjectStore, getProjectData,
+                                          remove connector limits)
+  app/(app)/discover/page.tsx            (useProjectStore, getProjectData)
+  app/(app)/settings/...                 (remove Members, Teams, Billing tabs)
+
+--------------------------------------------------------------------------------
+12. IMPLEMENTATION SEQUENCE
+--------------------------------------------------------------------------------
+
+Step 1 — Types + Store
+  Create lib/types/project.ts and lib/project-store.ts.
+  All downstream files depend on this.
+
+Step 2 — Mock Data
+  Create lib/mock-data/projects.ts (2 seed projects).
+  Create lib/mock-data/project-data.ts (realistic data for both projects).
+  Delete lib/mock-data/workspace.ts.
+
+Step 3 — Standalone Components
+  Create ProjectSwitcher.tsx.
+  Create CreateProjectModal.tsx.
+  Delete WorkspaceSwitcher.tsx, DebugRoleSwitcher.tsx, PlanBadge.tsx.
+
+Step 4 — Sidebar
+  Swap WorkspaceSwitcher → ProjectSwitcher.
+  Remove Teams section.
+  Remove DebugRoleSwitcher, PlanBadge.
+  Filter chat history by projectId.
+
+Step 5 — Pages (bulk mechanical swap)
+  Overview, Experiments, Connectors, Discover:
+  useWorkspaceStore → useProjectStore
+  activeWorkspaceId → activeProjectId
+  getWorkspaceData → getProjectData
+
+Step 6 — Settings
+  Remove Members, Teams, Billing tabs.
+  Add Project settings tab (rename, recolor, re-icon, delete).
+
+Step 7 — Store.ts
+  Rename workspaceId → projectId on SavedChat type.
+  Update all references.
+
+Step 8 — Empty State / Onboarding
+  Build Create First Project screen.
+  Add guard in root layout: if no projects, show this screen instead of app.
+
+--------------------------------------------------------------------------------
+13. OPEN DECISIONS (resolved before this PRD was written)
+--------------------------------------------------------------------------------
+
+  Q: What happens when the user deletes their only project?
+  A: Drop into the Create First Project screen.
+
+  Q: Is there a project limit?
+  A: No limit.
+
+  Q: What does the sidebar show when collapsed?
+  A: Just the colored shape (rounded square) with the first letter or icon.
+     No text, no chevron.
+
+  Q: Does switching projects clear the active chat?
+  A: Yes. Active chat is cleared. Chat history is filtered per project.
+     All chats are stored locally and retained; only visibility changes.
+
+  Q: How many icons in the picker?
+  A: ~18 icons, all product-relevant:
+     Smartphone · Globe · Rocket · Building2 · ShoppingCart · Zap · Shield
+     BarChart2 · Layers · Cpu · Users · Package · Target · Megaphone
+     CreditCard · Headphones · Settings2 · Store
+
+--------------------------------------------------------------------------------
+END OF PRD
+================================================================================

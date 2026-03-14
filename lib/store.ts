@@ -21,39 +21,28 @@ export type Chat = {
   title: string;
   messages: ConversationMessage[];
   projectId?: string;
-  teamId?: string;
-  folderId?: string;
   createdAt: string;
   updatedAt: string;
 };
 
-export type Project = {
-  id: string;
-  name: string;
-  color: string;
-  createdAt: string;
-};
-
-export const PROJECT_COLORS = ['indigo', 'emerald', 'amber', 'rose', 'violet', 'sky'] as const;
-
 // ─── localStorage helpers ──────────────────────────────────────────────────
 
-const LS_KEY = 'agent-chat-history';
+const LS_KEY = 'agent-chat-history-v2';
 
-function loadPersisted(): { savedChats: Chat[]; projects: Project[] } {
-  if (typeof window === 'undefined') return { savedChats: [], projects: [] };
+function loadPersisted(): { savedChats: Chat[] } {
+  if (typeof window === 'undefined') return { savedChats: [] };
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : { savedChats: [], projects: [] };
+    return raw ? JSON.parse(raw) : { savedChats: [] };
   } catch {
-    return { savedChats: [], projects: [] };
+    return { savedChats: [] };
   }
 }
 
-function syncToStorage(savedChats: Chat[], projects: Project[]) {
+function syncToStorage(savedChats: Chat[]) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify({ savedChats, projects }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ savedChats }));
   } catch {}
 }
 
@@ -61,12 +50,6 @@ function autoTitle(messages: ConversationMessage[]): string {
   const first = messages.find(m => m.role === 'user');
   if (!first) return 'Untitled chat';
   return first.content.length > 50 ? first.content.slice(0, 50) + '…' : first.content;
-}
-
-function nextColor(projects: Project[]): string {
-  const used = projects.map(p => p.color);
-  const available = PROJECT_COLORS.filter(c => !used.includes(c));
-  return available[0] ?? PROJECT_COLORS[projects.length % PROJECT_COLORS.length];
 }
 
 // ─── Store types ───────────────────────────────────────────────────────────
@@ -85,7 +68,6 @@ type AgentStore = {
 
   // Chat history
   savedChats: Chat[];
-  projects: Project[];
   activeChatId: string | null;
 
   // Init
@@ -97,16 +79,11 @@ type AgentStore = {
   resetAgent: (saveFirst?: boolean) => void;
 
   // Chat history actions
-  saveCurrentChat: (teamId?: string, folderId?: string) => string | null;
+  saveCurrentChat: () => string | null;
   loadChat: (chatId: string) => void;
   deleteChat: (chatId: string) => void;
   renameChat: (chatId: string, title: string) => void;
   moveChatToProject: (chatId: string, projectId: string | null) => void;
-
-  // Project actions
-  createProject: (name: string) => string;
-  deleteProject: (projectId: string) => void;
-  renameProject: (projectId: string, name: string) => void;
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────
@@ -123,12 +100,11 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   conversation: [],
 
   savedChats: [],
-  projects: [],
   activeChatId: null,
 
   hydrate: () => {
-    const { savedChats, projects } = loadPersisted();
-    set({ savedChats, projects });
+    const { savedChats } = loadPersisted();
+    set({ savedChats });
   },
 
   // ── Agent runners ──────────────────────────────────────────────────────
@@ -331,37 +307,46 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   // ── Chat history actions ───────────────────────────────────────────────
 
-  saveCurrentChat: (teamId?: string, folderId?: string) => {
-    const { conversation, activeChatId, savedChats, projects } = get();
+  saveCurrentChat: () => {
+    const { conversation, activeChatId, savedChats } = get();
     if (conversation.length === 0) return null;
 
     const now = new Date().toISOString();
 
     if (activeChatId) {
-      // Update existing chat
       const updated = savedChats.map(c =>
         c.id === activeChatId
           ? { ...c, messages: conversation, updatedAt: now }
           : c
       );
       set({ savedChats: updated });
-      syncToStorage(updated, projects);
+      syncToStorage(updated);
       return activeChatId;
     }
 
-    // Create new saved chat
+    // Tag chat with the currently active project
+    const activeProjectId: string = (() => {
+      try {
+        // Lazy access to avoid circular dependency
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { useProjectStore } = require('@/lib/project-store');
+        return useProjectStore.getState().activeProjectId ?? '';
+      } catch {
+        return '';
+      }
+    })();
+
     const chat: Chat = {
       id: `chat-${Date.now()}`,
       title: autoTitle(conversation),
       messages: conversation,
-      ...(teamId ? { teamId } : {}),
-      ...(folderId ? { folderId } : {}),
+      ...(activeProjectId ? { projectId: activeProjectId } : {}),
       createdAt: now,
       updatedAt: now,
     };
     const updated = [chat, ...savedChats];
-    set({ savedChats: updated });
-    syncToStorage(updated, projects);
+    set({ savedChats: updated, activeChatId: chat.id });
+    syncToStorage(updated);
     return chat.id;
   },
 
@@ -382,66 +367,37 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   deleteChat: (chatId: string) => {
-    const { savedChats, projects, activeChatId } = get();
+    const { savedChats, activeChatId } = get();
     const updated = savedChats.filter(c => c.id !== chatId);
     set({
       savedChats: updated,
       ...(activeChatId === chatId ? { activeChatId: null, conversation: [] } : {}),
     });
-    syncToStorage(updated, projects);
+    syncToStorage(updated);
   },
 
   renameChat: (chatId: string, title: string) => {
-    const { savedChats, projects } = get();
+    const { savedChats } = get();
     const updated = savedChats.map(c =>
       c.id === chatId ? { ...c, title, updatedAt: new Date().toISOString() } : c
     );
     set({ savedChats: updated });
-    syncToStorage(updated, projects);
+    syncToStorage(updated);
   },
 
   moveChatToProject: (chatId: string, projectId: string | null) => {
-    const { savedChats, projects } = get();
-    const updated = savedChats.map(c =>
-      c.id === chatId
-        ? { ...c, projectId: projectId ?? undefined, updatedAt: new Date().toISOString() }
-        : c
-    );
+    const { savedChats } = get();
+    const updated = savedChats.map(c => {
+      if (c.id !== chatId) return c;
+      const chat = { ...c, updatedAt: new Date().toISOString() };
+      if (projectId) {
+        chat.projectId = projectId;
+      } else {
+        delete chat.projectId;
+      }
+      return chat;
+    });
     set({ savedChats: updated });
-    syncToStorage(updated, projects);
-  },
-
-  // ── Project actions ────────────────────────────────────────────────────
-
-  createProject: (name: string) => {
-    const { savedChats, projects } = get();
-    const project: Project = {
-      id: `proj-${Date.now()}`,
-      name,
-      color: nextColor(projects),
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [...projects, project];
-    set({ projects: updated });
-    syncToStorage(savedChats, updated);
-    return project.id;
-  },
-
-  deleteProject: (projectId: string) => {
-    const { savedChats, projects } = get();
-    const updatedProjects = projects.filter(p => p.id !== projectId);
-    // Unassign chats from deleted project
-    const updatedChats = savedChats.map(c =>
-      c.projectId === projectId ? { ...c, projectId: undefined } : c
-    );
-    set({ projects: updatedProjects, savedChats: updatedChats });
-    syncToStorage(updatedChats, updatedProjects);
-  },
-
-  renameProject: (projectId: string, name: string) => {
-    const { savedChats, projects } = get();
-    const updated = projects.map(p => p.id === projectId ? { ...p, name } : p);
-    set({ projects: updated });
-    syncToStorage(savedChats, updated);
+    syncToStorage(updated);
   },
 }));

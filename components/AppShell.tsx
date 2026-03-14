@@ -4,8 +4,10 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
 import { useAgentStore } from "@/lib/store";
+import { useProjectStore } from "@/lib/project-store";
 import Sidebar from "@/components/Sidebar";
 import TopNav from "@/components/TopNav";
+import ProjectBrowser from "@/components/ProjectBrowser";
 
 const PUBLIC_ROUTES = ["/", "/login", "/signup"];
 const useIsomorphicLayoutEffect =
@@ -16,6 +18,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, hydrate: hydrateAuth } = useAuthStore();
   const { hydrate: hydrateAgent } = useAgentStore();
+  const { joinedProjectIds } = useProjectStore();
   const [hydrated, setHydrated] = useState(false);
 
   useIsomorphicLayoutEffect(() => {
@@ -25,35 +28,47 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [hydrateAuth, hydrateAgent]);
 
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+  const isSection = pathname.startsWith("/section/");
 
   useEffect(() => {
     if (!hydrated) return;
-
     if (!isAuthenticated && !isPublicRoute) {
       router.replace("/login");
     }
   }, [hydrated, isAuthenticated, isPublicRoute, router]);
 
-  // For public routes, render immediately without waiting for hydration
-  // to avoid a blank flash. Auth state loads in the background.
+  // Public routes render immediately
   if (isPublicRoute) {
     return <>{children}</>;
   }
 
-  // For protected routes, wait for hydration before deciding
-  if (!hydrated) {
-    return null;
+  if (!hydrated) return null;
+  if (!isAuthenticated) return null;
+
+  // If authenticated but hasn't joined any projects → full-page project browser
+  if (joinedProjectIds.length === 0) {
+    return (
+      <ProjectBrowser
+        isOnboarding
+        onClose={() => {
+          // After first join the component re-renders automatically
+          // (joinedProjectIds.length > 0 → normal shell renders)
+        }}
+      />
+    );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  const isSettingsPage = pathname === "/settings";
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+    <div className="relative flex h-screen overflow-hidden">
+      {/* Primary Sidebar */}
+      {!isSettingsPage && <Sidebar />}
+
+      {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        <TopNav />
+        {/* TopNav only on non-section routes */}
+        {!isSection && <TopNav />}
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>

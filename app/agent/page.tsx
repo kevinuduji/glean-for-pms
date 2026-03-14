@@ -5,8 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
-  PanelLeftClose,
-  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   FlaskConical,
   Code,
   Activity,
@@ -182,45 +182,39 @@ function AgentPageInner() {
 
   return (
     <div className="flex h-full overflow-hidden bg-white">
-      {/* Left panel: Connectors */}
-      <motion.div
-        animate={{ width: isConnectorsOpen ? "240px" : "64px" }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="flex-shrink-0 h-full overflow-hidden bg-slate-50 border-r border-slate-200"
-      >
-        <div
-          className={cn(
-            "h-full transition-all duration-300",
-            isConnectorsOpen ? "w-[240px]" : "w-[64px]",
-          )}
-        >
-          <ConnectorsSidebar isCollapsed={!isConnectorsOpen} />
-        </div>
-      </motion.div>
-
       {/* Middle panel: Chat */}
       <div className="flex-1 flex flex-col bg-white overflow-hidden">
         {/* Header */}
         <div className="xl:px-8 lg:px-6 px-6 py-3 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
+              onClick={() => {
+                useAgentStore.getState().resetAgent();
+                if (window.location.pathname !== "/agent") {
+                  window.location.href = "/agent";
+                }
+              }}
+              className="text-xl font-playfair font-medium text-slate-900 tracking-tight hover:opacity-80 transition-opacity ml-1"
+            >
+              Probe
+            </button>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
               onClick={() => setIsConnectorsOpen(!isConnectorsOpen)}
-              className="p-1.5 -ml-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-all"
+              className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-all font-medium flex items-center gap-2"
               title={
-                isConnectorsOpen ? "Collapse connectors" : "Expand connectors"
+                isConnectorsOpen ? "Hide connectors" : "Show connectors"
               }
             >
+              <span className="text-xs uppercase tracking-wider font-bold">Connectors</span>
               {isConnectorsOpen ? (
-                <PanelLeftClose className="w-4 h-4" />
+                <PanelRightClose className="w-4 h-4" />
               ) : (
-                <PanelLeftOpen className="w-4 h-4" />
+                <PanelRightOpen className="w-4 h-4" />
               )}
             </button>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Chat
-            </h1>
           </div>
-          <div className="flex items-center gap-4"></div>
         </div>
 
         {/* Messages */}
@@ -555,7 +549,27 @@ function AgentPageInner() {
         )}
       </div>
 
-      {/* Right panel removed as per user request */}
+      {/* Right panel: Connectors */}
+      <motion.div
+        animate={{ width: isConnectorsOpen ? "240px" : "0px" }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className={cn(
+          "flex-shrink-0 h-full overflow-hidden",
+          isConnectorsOpen && "border-l border-slate-200"
+        )}
+      >
+        <div
+          className={cn(
+            "h-full transition-all duration-300",
+            isConnectorsOpen ? "w-[240px]" : "w-0",
+          )}
+        >
+          <ConnectorsSidebar
+            isCollapsed={!isConnectorsOpen}
+            className="border-none"
+          />
+        </div>
+      </motion.div>
     </div>
   );
 }

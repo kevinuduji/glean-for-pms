@@ -36,6 +36,13 @@ import {
 import { type Source, type Area } from "@/lib/mock-data/recommendations";
 import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/utils";
+import { useProjectStore } from "@/lib/project-store";
+import { useAgentStore } from "@/lib/store";
+import { useRouter } from "next/navigation";
+import {
+  BLACKROCK_DISCOVER,
+  CATEGORY_CONFIG,
+} from "@/lib/mock-data/blackrock-discover";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -1257,6 +1264,18 @@ function GitHubPRModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RecommendationsPage() {
+  const { activeProjectId, getActiveProject } = useProjectStore();
+  const { resetAgent, setQuery } = useAgentStore();
+  const router = useRouter();
+  const activeProject = getActiveProject();
+  const discoverConfig = BLACKROCK_DISCOVER[activeProjectId] ?? null;
+
+  const handlePromptClick = (prompt: string) => {
+    resetAgent();
+    setQuery(prompt);
+    router.push("/agent");
+  };
+
   const [isLoading, setIsLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
@@ -1322,12 +1341,47 @@ export default function RecommendationsPage() {
       {/* Center Feed */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Discover Header */}
-        <div className="px-8 pt-8 pb-6 border-b border-slate-200 bg-white flex-shrink-0">
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Discover</h1>
-          <p className="text-sm text-slate-500">
-            What should I work on next? AI-powered recommendations from across
-            your product stack.
-          </p>
+        <div className="px-8 pt-8 pb-5 border-b border-slate-200 bg-white flex-shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 mb-1">Discover</h1>
+              <p className="text-sm text-slate-500">
+                {discoverConfig
+                  ? discoverConfig.tagline
+                  : "AI-powered recommendations from across your product stack."}
+              </p>
+            </div>
+            {activeProject && (
+              <div className="flex items-center gap-1.5 flex-shrink-0 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <span className="text-[11px] font-medium text-slate-500">Space:</span>
+                <span className="text-[11px] font-semibold text-slate-700">{activeProject.name}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Project-specific prompt chips */}
+          {discoverConfig && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {discoverConfig.prompts.map((p) => {
+                const cat = CATEGORY_CONFIG[p.category];
+                return (
+                  <button
+                    key={p.label}
+                    onClick={() => handlePromptClick(p.prompt)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:shadow-sm hover:-translate-y-px",
+                      cat.bg,
+                      cat.text,
+                      "border-current/20"
+                    )}
+                  >
+                    <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", cat.dot)} />
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Feed Body */}

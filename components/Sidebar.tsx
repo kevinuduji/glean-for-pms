@@ -1,59 +1,35 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  FlaskConical,
-  Plug,
-  Settings,
-  Search,
-  PanelLeftClose,
-  PanelLeftOpen,
-  LayoutDashboard,
-  SquarePen,
-  MessageSquare,
-  FolderPlus,
-  Compass,
+  Hash,
+  ChevronDown,
   ChevronRight,
   FolderOpen,
+  Folder,
   Plus,
-  Users,
-  TrendingUp,
-  Cpu,
-  Palette,
-  Shield,
-  Rocket,
-  Zap,
-  Globe,
-  Lock,
-  Star,
-  type LucideIcon,
+  Plug,
+  Search,
+  MoreHorizontal,
+  Bell,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
 import SearchModal from "./SearchModal";
-import { useAgentStore } from "@/lib/store";
-import { useWorkspaceStore } from "@/lib/workspace-store";
-import { useRouter } from "next/navigation";
-import WorkspaceSwitcher from "./WorkspaceSwitcher";
-import PlanBadge from "./PlanBadge";
-import DebugRoleSwitcher from "./DebugRoleSwitcher";
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  TrendingUp, Cpu, Palette, Shield, Rocket, Zap, Globe, Lock, Star, Users,
-};
-
-const navItems = [
-  { href: "/overview", label: "Overview", icon: LayoutDashboard },
-  { href: "/agent", label: "New Chat", icon: SquarePen },
-  { href: "/experiments", label: "Experiments", icon: FlaskConical },
-  { href: "/discover", label: "Discover", icon: Compass },
-];
-
-const bottomNavItems = [
-  { href: "/connectors", label: "Connectors", icon: Plug },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+import WorkspacePicker from "./WorkspacePicker";
+import ProjectBrowser from "./ProjectBrowser";
+import { useProjectStore } from "@/lib/project-store";
+import { useWorkspaceProjectStore } from "@/lib/workspace-project-store";
+import { useSectionStore } from "@/lib/section-store";
+import {
+  SECTIONS_BY_PROJECT,
+  FOLDERS_BY_PROJECT,
+} from "@/lib/mock-data/sections";
+import type { Section, SectionFolder } from "@/lib/types/section";
+import ActivityPanel from "./ActivityPanel";
+import { MOCK_ACTIVITY } from "@/lib/mock-data/activity";
 
 const colorMap: Record<string, string> = {
   emerald: "bg-emerald-500",
@@ -69,26 +45,50 @@ const colorMap: Record<string, string> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const router = useRouter();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(
+    new Set(),
+  );
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(
+    new Set(),
+  );
+  const [activityOpen, setActivityOpen] = useState(false);
+  const hasUnread = MOCK_ACTIVITY.some((a) => !a.read);
 
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  const { activeProjectId, getActiveProject } = useProjectStore();
+  const { getJoinedProjectsForWorkspace } = useWorkspaceProjectStore();
   const {
-    getVisibleTeams,
-    getVisibleFolders,
-    setActiveTeam,
-    setActiveFolder,
-    activeTeamId,
-    activeFolderId,
-    getActivePlan,
-  } = useWorkspaceStore();
+    activeSectionId,
+    setActiveSection,
+    getSectionsForProject,
+    getFoldersForProject,
+  } = useSectionStore();
 
-  const { savedChats, loadChat, activeChatId, projects, resetAgent } = useAgentStore();
+  const activeWorkspace = getActiveProject();
 
-  const visibleTeams = getVisibleTeams();
-  const activePlan = getActivePlan();
+  // Projects for the active workspace
+  const projects = activeWorkspace
+    ? getJoinedProjectsForWorkspace(activeWorkspace.id)
+    : [];
 
+  // Close workspace picker on outside click
+  useEffect(() => {
+    if (!showWorkspacePicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowWorkspacePicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showWorkspacePicker]);
+
+  // Keyboard shortcut ⌘K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -100,315 +100,293 @@ export default function Sidebar() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleNewChat = (e: React.MouseEvent) => {
-    e.preventDefault();
-    resetAgent();
-    if (pathname !== "/agent") {
-      router.push("/agent");
-    }
-  };
-
-  const toggleTeam = (teamId: string) => {
-    setExpandedTeams((prev) => {
+  const toggleProject = (id: string) => {
+    setCollapsedProjects((prev) => {
       const next = new Set(prev);
-      if (next.has(teamId)) {
-        next.delete(teamId);
-      } else {
-        next.add(teamId);
-      }
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
-  return (
-    <div
-      className={cn(
-        "h-full bg-slate-900 flex flex-col border-r border-slate-800 flex-shrink-0 transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "xl:w-56 lg:w-52 w-52",
-      )}
-    >
-      {/* Workspace Switcher or collapse toggle */}
-      {!isCollapsed ? (
-        <div className="flex items-start gap-1 pt-2 pr-2">
-          <div className="flex-1 min-w-0">
-            <WorkspaceSwitcher />
-          </div>
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="p-1.5 mt-3 mr-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors flex-shrink-0"
-            title="Collapse sidebar"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
-        </div>
-      ) : (
-        <div className="px-4 pt-4 pb-2 flex items-center justify-center">
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
-            title="Expand sidebar"
-          >
-            <PanelLeftOpen className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+  const toggleFolder = (id: string) => {
+    setCollapsedFolders((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
-      {/* Search Button */}
-      <div className={cn("px-2 pb-2 mt-1", isCollapsed && "flex justify-center mt-2")}>
+  const handleSectionClick = (section: Section) => {
+    setActiveSection(section.id);
+    router.push(`/section/${section.id}/overview`);
+  };
+
+  const renderSections = (sections: Section[]) =>
+    sections.map((section) => {
+      const isActive =
+        activeSectionId === section.id ||
+        pathname.startsWith(`/section/${section.id}/`);
+      return (
         <button
-          onClick={() => setIsSearchOpen(true)}
+          key={section.id}
+          onClick={() => handleSectionClick(section)}
           className={cn(
-            "flex items-center gap-3 px-3 py-1.5 w-full rounded-lg text-[13px] transition-all relative text-slate-400 hover:text-slate-200 hover:bg-slate-800",
-            isCollapsed && "justify-center px-0 w-12 h-12 mx-auto",
+            "group w-full flex items-center gap-1.5 px-3 py-[5px] rounded-md text-left transition-all",
+            isActive
+              ? "bg-slate-700/80 text-white"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50",
           )}
-          title={isCollapsed ? "Search (⌘K)" : ""}
         >
-          <Search className={cn("flex-shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4")} />
-          {!isCollapsed && (
-            <div className="flex items-center justify-between flex-1">
-              <span className="text-nowrap font-medium">Search</span>
-              <div className="flex items-center gap-1 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-500 font-medium">
-                <span>⌘</span>
-                <span>K</span>
-              </div>
-            </div>
-          )}
+          <Hash
+            className={cn(
+              "w-3.5 h-3.5 flex-shrink-0 mr-0.5",
+              isActive
+                ? "text-slate-300"
+                : "text-slate-600 group-hover:text-slate-400",
+            )}
+          />
+          <span className="text-[13px] truncate leading-snug">
+            {section.name}
+          </span>
         </button>
-      </div>
+      );
+    });
 
-      {/* Nav items */}
-      <nav className={cn("px-2 space-y-0.5", isCollapsed && "space-y-2")}>
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== "/agent" && pathname.startsWith(href));
+  const renderFoldersAndSections = (projectId: string) => {
+    const allSections = getSectionsForProject(projectId);
+    const allFolders = getFoldersForProject(projectId);
+
+    // Standalone sections (no folder)
+    const standaloneSections = allSections.filter((s) => !s.folderId);
+
+    return (
+      <>
+        {allFolders.map((folder) => {
+          const folderSections = allSections.filter(
+            (s) => s.folderId === folder.id,
+          );
+          const isCollapsed = collapsedFolders.has(folder.id);
           return (
-            <Link
-              key={href}
-              href={href}
-              onClick={href === "/agent" ? handleNewChat : undefined}
-              className={cn(
-                "flex items-center gap-3 px-3 py-1.5 rounded-lg text-[13px] transition-all relative",
-                isCollapsed && "justify-center px-0 w-12 h-12 mx-auto",
-                active
-                  ? "text-slate-200 bg-slate-800"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800",
+            <div key={folder.id}>
+              {/* Folder header */}
+              <button
+                onClick={() => toggleFolder(folder.id)}
+                className="w-full flex items-center gap-1.5 px-3 py-[5px] text-left hover:bg-slate-800/30 rounded-md transition-colors group"
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="w-3 h-3 text-slate-600 flex-shrink-0" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-slate-600 flex-shrink-0" />
+                )}
+                {isCollapsed ? (
+                  <Folder className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                ) : (
+                  <FolderOpen className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                )}
+                <span className="text-[12px] text-slate-400 font-medium truncate group-hover:text-slate-200 transition-colors">
+                  {folder.name}
+                </span>
+              </button>
+              {/* Folder sections */}
+              {!isCollapsed && (
+                <div className="pl-4">{renderSections(folderSections)}</div>
               )}
-              title={isCollapsed ? label : ""}
-            >
-              <Icon className={cn("flex-shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4")} />
-              {!isCollapsed && <span className="text-nowrap font-medium">{label}</span>}
-            </Link>
+            </div>
           );
         })}
-      </nav>
+        {/* Standalone sections */}
+        {renderSections(standaloneSections)}
+      </>
+    );
+  };
 
-      {/* Teams Section */}
-      {!isCollapsed && visibleTeams.length > 0 && (
-        <div className="mt-4 border-t border-slate-800/50 pt-3">
-          <div className="px-5 mb-1 flex items-center justify-between group">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-              Teams
+  return (
+    <>
+      <div className="h-full w-60 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col">
+        {/* ── Workspace header ── */}
+        <div ref={pickerRef} className="relative border-b border-slate-800">
+          <button
+            onClick={() => setShowWorkspacePicker((v) => !v)}
+            className="w-full flex items-center gap-2.5 px-3 py-3 hover:bg-slate-800/40 transition-colors"
+          >
+            {activeWorkspace && (
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full flex-shrink-0",
+                  colorMap[activeWorkspace.color] ?? "bg-slate-500",
+                )}
+              />
+            )}
+            <span className="text-[14px] font-bold text-slate-100 truncate flex-1 text-left">
+              {activeWorkspace?.name ?? "Select workspace"}
             </span>
-            <button
-              onClick={() => router.push("/settings/workspace/teams?new=true")}
-              className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-all opacity-0 group-hover:opacity-100"
-              title="Create team"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+          </button>
 
-          <div className="px-2 space-y-0.5">
-            {visibleTeams.map((team) => {
-              const TeamIcon = ICON_MAP[team.icon] ?? Users;
-              const isExpanded = expandedTeams.has(team.id);
-              const isActiveTeam = activeTeamId === team.id;
-              const teamFolders = getVisibleFolders(team.id);
-              const dotColor = colorMap[team.color] ?? "bg-slate-500";
+          {showWorkspacePicker && (
+            <WorkspacePicker
+              onClose={() => setShowWorkspacePicker(false)}
+              onOpenBrowser={() => {
+                setShowWorkspacePicker(false);
+                setShowBrowser(true);
+              }}
+            />
+          )}
+        </div>
 
+        {/* ── Search ── */}
+        <div className="px-2 pt-2 pb-1">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center gap-2.5 px-3 py-1.5 w-full rounded-lg text-[13px] transition-all text-slate-500 hover:text-slate-300 hover:bg-slate-800"
+          >
+            <Search className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="flex-1 text-left">Search</span>
+            <div className="flex items-center gap-0.5 text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 font-medium">
+              <span>⌘</span>
+              <span>K</span>
+            </div>
+          </button>
+        </div>
+
+        {/* ── Project / Section hierarchy ── */}
+        <div className="flex-1 overflow-y-auto scrollbar-hide py-1 px-2 space-y-0.5">
+          {projects.length === 0 ? (
+            <div className="px-3 py-6 text-center">
+              <p className="text-[12px] text-slate-600">
+                No projects joined. Browse spaces to find projects.
+              </p>
+            </div>
+          ) : (
+            projects.map((project) => {
+              const isCollapsed = collapsedProjects.has(project.id);
               return (
-                <div key={team.id}>
-                  <button
-                    onClick={() => {
-                      setActiveTeam(isActiveTeam ? null : team.id);
-                      toggleTeam(team.id);
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] transition-all",
-                      isActiveTeam
-                        ? "text-slate-200 bg-slate-800"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60",
-                    )}
-                  >
-                    <div className={cn("w-2 h-2 rounded-full flex-shrink-0", dotColor)} />
-                    <TeamIcon className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="flex-1 text-left text-nowrap font-medium truncate">
-                      {team.name}
-                    </span>
-                    <ChevronRight
-                      className={cn(
-                        "w-3 h-3 text-slate-600 transition-transform duration-200",
-                        isExpanded && "rotate-90",
+                <div key={project.id} className="mb-1">
+                  {/* Project header */}
+                  <div className="flex items-center group">
+                    <button
+                      onClick={() => toggleProject(project.id)}
+                      className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-slate-800/40 transition-colors text-left"
+                    >
+                      {isCollapsed ? (
+                        <ChevronRight className="w-3 h-3 text-slate-600 flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3 text-slate-600 flex-shrink-0" />
                       )}
-                    />
-                  </button>
+                      <span
+                        className={cn(
+                          "w-1.5 h-1.5 rounded-full flex-shrink-0",
+                          colorMap[project.color] ?? "bg-slate-500",
+                        )}
+                      />
+                      <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 truncate group-hover:text-slate-300 transition-colors">
+                        {project.name}
+                      </span>
+                    </button>
+                    <button className="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-600 hover:text-slate-400 hover:bg-slate-800 transition-all mr-1">
+                      <MoreHorizontal className="w-3 h-3" />
+                    </button>
+                  </div>
 
-                  {/* Folders */}
-                  {isExpanded && teamFolders.length > 0 && (
-                    <div className="ml-6 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2">
-                      {teamFolders.map((folder) => {
-                        const isActiveFolder = activeFolderId === folder.id;
-                        return (
-                          <button
-                            key={folder.id}
-                            onClick={() => setActiveFolder(isActiveFolder ? null : folder.id)}
-                            className={cn(
-                              "w-full flex items-center gap-2 px-2 py-1 rounded-md text-[12px] transition-all",
-                              isActiveFolder
-                                ? "text-slate-200 bg-slate-800"
-                                : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40",
-                            )}
-                          >
-                            <FolderOpen className="w-3 h-3 flex-shrink-0" />
-                            <span className="text-nowrap truncate font-medium">{folder.name}</span>
-                            {folder.visibility === "private" && (
-                              <Lock className="w-2.5 h-2.5 text-slate-600 flex-shrink-0 ml-auto" />
-                            )}
-                          </button>
-                        );
-                      })}
+                  {/* Sections */}
+                  {!isCollapsed && (
+                    <div className="ml-1 mt-0.5 space-y-0.5">
+                      {renderFoldersAndSections(project.id)}
+
+                      {/* Add section */}
+                      <button className="w-full flex items-center gap-1.5 px-3 py-[5px] text-[11px] text-slate-700 hover:text-slate-400 transition-colors rounded-md hover:bg-slate-800/30">
+                        <Plus className="w-3 h-3" />
+                        Add section
+                      </button>
                     </div>
                   )}
                 </div>
               );
-            })}
-          </div>
+            })
+          )}
         </div>
-      )}
 
-      {/* Chat History Section - Scrollable */}
-      {!isCollapsed && (
-        <div className="flex-1 flex flex-col min-h-0 mt-3 border-t border-slate-800/50 pt-3">
-          <div className="px-5 mb-2 flex items-center justify-between group">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-              History
-            </span>
-            <button className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-all opacity-0 group-hover:opacity-100">
-              <FolderPlus className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-2 space-y-0.5">
-            {savedChats.length === 0 ? (
-              <div className="px-3 py-8 text-center">
-                <p className="text-[11px] text-slate-600 font-medium">No chats yet</p>
-              </div>
-            ) : (
-              savedChats.map((chat) => {
-                const project = projects.find((p) => p.id === chat.projectId);
-                return (
-                  <button
-                    key={chat.id}
-                    onClick={() => {
-                      loadChat(chat.id);
-                      if (pathname !== "/agent") router.push("/agent");
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all text-left relative group",
-                      activeChatId === chat.id
-                        ? "text-slate-200 bg-slate-800 shadow-sm"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50",
-                    )}
-                  >
-                    <MessageSquare
-                      className={cn(
-                        "w-3.5 h-3.5 flex-shrink-0",
-                        activeChatId === chat.id
-                          ? "text-indigo-400"
-                          : "text-slate-500 group-hover:text-slate-300",
-                      )}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate font-medium">{chat.title}</p>
-                      {project && (
-                        <p
-                          className={cn(
-                            "text-[9px] font-bold uppercase tracking-wider opacity-60",
-                            project.color === "indigo" ? "text-indigo-400"
-                            : project.color === "emerald" ? "text-emerald-400"
-                            : project.color === "amber" ? "text-amber-400"
-                            : project.color === "rose" ? "text-rose-400"
-                            : "text-slate-400",
-                          )}
-                        >
-                          {project.name}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-
-      {isCollapsed && <div className="flex-1" />}
-
-      {/* Debug Role Switcher (dev tools) */}
-      {!isCollapsed && <DebugRoleSwitcher />}
-
-      <div className={cn("h-px bg-slate-800 mx-3 mb-2", isCollapsed && "mx-2")} />
-
-      {/* Bottom items */}
-      <div className={cn("px-2 pb-2 space-y-0.5", isCollapsed && "space-y-2")}>
-        {bottomNavItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-1.5 rounded-lg text-[13px] transition-all relative",
-                isCollapsed && "justify-center px-0 w-12 h-12 mx-auto",
-                active
-                  ? "text-slate-200 bg-slate-800"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800",
-              )}
-              title={isCollapsed ? label : ""}
-            >
-              <Icon className={cn("flex-shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4")} />
-              {!isCollapsed && <span className="text-nowrap">{label}</span>}
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* User info */}
-      <div className="px-3 py-2.5 border-t border-slate-800 min-h-[57px]">
-        <Link
-          href="/settings"
-          className={cn("flex items-center gap-2.5 hover:opacity-80 transition-opacity", isCollapsed && "justify-center")}
-        >
-          <div
+        {/* ── Bottom bar ── */}
+        <div className="border-t border-slate-800 px-2 py-2 space-y-0.5">
+          {/* Connectors */}
+          <Link
+            href="/connectors"
             className={cn(
-              "rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0",
-              isCollapsed ? "w-9 h-9" : "w-7 h-7",
+              "flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] transition-all",
+              pathname.startsWith("/connectors")
+                ? "text-slate-200 bg-slate-800"
+                : "text-slate-500 hover:text-slate-300 hover:bg-slate-800",
             )}
           >
-            <span className={cn("text-white font-semibold", isCollapsed ? "text-sm" : "text-xs")}>
+            <Plug className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="font-medium">Connectors</span>
+          </Link>
+
+          {/* Divider */}
+          <div className="h-px bg-slate-800 mx-1 my-1" />
+
+          {/* Activity + Settings row */}
+          <div className="flex items-center gap-1 px-1">
+            {/* Activity bell */}
+            <button
+              onClick={() => setActivityOpen((v) => !v)}
+              className={cn(
+                "relative flex items-center justify-center w-7 h-7 rounded-lg transition-colors",
+                activityOpen
+                  ? "bg-slate-700 text-slate-200"
+                  : "text-slate-500 hover:text-slate-300 hover:bg-slate-800",
+              )}
+              title="Activity"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              {hasUnread && (
+                <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-rose-500" />
+              )}
+            </button>
+
+            {/* Settings */}
+            <button
+              onClick={() => router.push("/settings")}
+              className={cn(
+                "flex items-center justify-center w-7 h-7 rounded-lg transition-colors",
+                pathname === "/settings"
+                  ? "bg-slate-700 text-slate-200"
+                  : "text-slate-500 hover:text-slate-300 hover:bg-slate-800",
+              )}
+              title="Settings"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Account avatar */}
+            <button
+              onClick={() => router.push("/settings")}
+              className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white hover:bg-indigo-500 transition-colors flex-shrink-0"
+              title="Account"
+            >
               K
-            </span>
+            </button>
           </div>
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-slate-200 text-[11px] font-medium truncate">Kevin</p>
-              <PlanBadge plan={activePlan} />
-            </div>
-          )}
-        </Link>
+        </div>
       </div>
 
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-    </div>
+      {/* Search modal */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
+
+      {/* Space browser */}
+      {showBrowser && <ProjectBrowser onClose={() => setShowBrowser(false)} />}
+
+      {/* Activity panel */}
+      <ActivityPanel
+        isOpen={activityOpen}
+        onClose={() => setActivityOpen(false)}
+      />
+    </>
   );
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from "react";
 import {
   Plus,
-  FolderPlus,
   ChevronDown,
   ChevronRight,
   MessageSquare,
@@ -13,7 +12,9 @@ import {
   FolderOpen,
   X,
 } from "lucide-react";
-import { useAgentStore, Chat, Project } from "@/lib/store";
+import { useAgentStore, Chat } from "@/lib/store";
+import type { Project } from "@/lib/types/project";
+import { useProjectStore } from "@/lib/project-store";
 import { cn } from "@/lib/utils";
 
 const COLOR_DOT: Record<string, string> = {
@@ -203,7 +204,6 @@ export default function AgentChatSidebar() {
   const {
     hydrate,
     savedChats,
-    projects,
     activeChatId,
     conversation,
     isRunning,
@@ -212,24 +212,18 @@ export default function AgentChatSidebar() {
     deleteChat,
     renameChat,
     moveChatToProject,
-    createProject,
-    deleteProject,
-    renameProject,
   } = useAgentStore();
 
+  const { getJoinedProjects } = useProjectStore();
+  const projects = getJoinedProjects();
+
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [newProjectName, setNewProjectName] = useState("");
-  const [showNewProject, setShowNewProject] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingProjectName, setEditingProjectName] = useState("");
-  const newProjectRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
-  useEffect(() => {
-    if (showNewProject) newProjectRef.current?.focus();
-  }, [showNewProject]);
 
   const toggleCollapse = (id: string) => {
     setCollapsed((prev) => {
@@ -245,17 +239,7 @@ export default function AgentChatSidebar() {
 
   const handleNewChat = () => resetAgent(true);
 
-  const handleCreateProject = () => {
-    const name = newProjectName.trim();
-    if (!name) return;
-    createProject(name);
-    setNewProjectName("");
-    setShowNewProject(false);
-  };
-
   const commitProjectRename = (id: string) => {
-    const name = editingProjectName.trim();
-    if (name) renameProject(id, name);
     setEditingProjectId(null);
   };
 
@@ -349,27 +333,11 @@ export default function AgentChatSidebar() {
                   <ChevronDown className="w-3 h-3 text-slate-400 flex-shrink-0" />
                 )}
 
-                {/* Project actions (edit/delete) */}
+                {/* Project actions */}
                 <div
                   className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    className="p-0.5 hover:bg-slate-200 rounded"
-                    onClick={() => {
-                      setEditingProjectId(project.id);
-                      setEditingProjectName(project.name);
-                    }}
-                  >
-                    <Edit2 className="w-3 h-3 text-slate-400" />
-                  </button>
-                  <button
-                    className="p-0.5 hover:bg-red-50 rounded"
-                    onClick={() => deleteProject(project.id)}
-                  >
-                    <X className="w-3 h-3 text-slate-400 hover:text-red-500" />
-                  </button>
-                </div>
+                />
               </div>
 
               {/* Chats in project */}
@@ -425,50 +393,8 @@ export default function AgentChatSidebar() {
         )}
       </div>
 
-      {/* Footer: new project */}
-      <div className="px-3 py-2.5 border-t border-slate-100">
-        {showNewProject ? (
-          <div className="flex items-center gap-1">
-            <input
-              ref={newProjectRef}
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreateProject();
-                if (e.key === "Escape") {
-                  setShowNewProject(false);
-                  setNewProjectName("");
-                }
-              }}
-              placeholder="Project name…"
-              className="flex-1 text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400"
-            />
-            <button
-              onClick={handleCreateProject}
-              className="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-            </button>
-            <button
-              onClick={() => {
-                setShowNewProject(false);
-                setNewProjectName("");
-              }}
-              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowNewProject(true)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <FolderPlus className="w-3.5 h-3.5" />
-            New Project
-          </button>
-        )}
-      </div>
+      {/* Footer */}
+      <div className="px-3 py-2.5 border-t border-slate-100" />
     </div>
   );
 }

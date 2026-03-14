@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Clock, X, CheckCheck } from "lucide-react";
+import { CheckCircle2, Clock, X, CheckCheck, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ToolLogo, { Tool } from "@/components/ToolLogo";
 import {
@@ -42,6 +42,9 @@ import {
 } from "@/lib/mock-data/stripe";
 
 import { activeConnectors } from "@/lib/mock-data/connectors";
+
+import { useProjectStore } from "@/lib/project-store";
+import { getProjectData, ALL_CONNECTOR_IDS } from "@/lib/mock-data/project-data";
 
 // ─── Amplitude Viewer ────────────────────────────────────────────────────────
 
@@ -1520,6 +1523,21 @@ export default function ConnectorsPage() {
     null,
   );
   const searchParams = useSearchParams();
+  const { activeProjectId } = useProjectStore();
+  const wsConnectors = getProjectData(activeProjectId).connectors;
+
+  // Build the active connector list with workspace-specific stat overrides
+  const wsActiveConnectors = activeConnectors
+    .filter((c) => wsConnectors.activeIds.includes(c.id))
+    .map((c) => ({
+      ...c,
+      stats: wsConnectors.overrides[c.id] ?? c.stats,
+    }));
+
+  // Locked connectors: in the global list but not active for this workspace
+  const lockedConnectors = ALL_CONNECTOR_IDS.filter(
+    (id) => !wsConnectors.activeIds.includes(id),
+  ).map((id) => activeConnectors.find((c) => c.id === id)).filter(Boolean) as typeof activeConnectors;
 
   useEffect(() => {
     const connectorParam = searchParams.get("connector");
@@ -1546,12 +1564,12 @@ export default function ConnectorsPage() {
             Active
           </h2>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-            {activeConnectors.length} connected
+            {wsActiveConnectors.length} connected
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {activeConnectors.map((connector) => (
+          {wsActiveConnectors.map((connector) => (
             <div
               key={connector.id}
               className="bg-white rounded-xl border border-zinc-200 shadow-sm p-5 hover:shadow-md transition-shadow"
@@ -1608,6 +1626,55 @@ export default function ConnectorsPage() {
           ))}
         </div>
       </div>
+
+      {/* Locked / not-yet-connected connectors */}
+      {lockedConnectors.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+              Not Connected
+            </h2>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+              {lockedConnectors.length} available
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {lockedConnectors.map((connector) => (
+              <div
+                key={connector.id}
+                className="relative bg-white rounded-xl border border-zinc-200 shadow-sm p-5 opacity-60"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <ToolLogo
+                      tool={connector.id as Tool}
+                      size="lg"
+                      className="w-10 h-10 rounded-xl grayscale"
+                    />
+                    <div>
+                      <h3 className="font-semibold text-slate-900 text-sm">
+                        {connector.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {connector.description}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="flex items-center gap-1 text-xs text-slate-500 font-medium bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full flex-shrink-0">
+                    <Lock className="w-3 h-3" />
+                    Not connected
+                  </span>
+                </div>
+                <div className="pt-3 border-t border-slate-100">
+                  <button className="w-full py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
+                    Connect
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Data viewer modal */}
       {selectedConnector && (

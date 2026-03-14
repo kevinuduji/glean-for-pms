@@ -46,11 +46,9 @@ import {
   type ExperimentNote,
   type Experiment,
   type ExperimentIdea,
-  mockActiveExperiments,
-  mockExperimentQueue,
-  mockExperimentIdeas,
-  mockArchivedExperiments,
 } from "@/lib/mock-data/experiments";
+import { useProjectStore } from "@/lib/project-store";
+import { getProjectData } from "@/lib/mock-data/project-data";
 
 // ─── Local Agent State ────────────────────────────────────────────────────────
 
@@ -990,6 +988,12 @@ function ExperimentDetail({
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function ExperimentsPage() {
+  const { activeProjectId } = useProjectStore();
+  const wsExperiments = getProjectData(activeProjectId).experiments;
+  const mockActiveExperiments = wsExperiments.active;
+  const mockExperimentQueue = wsExperiments.queue;
+  const mockExperimentIdeas = wsExperiments.ideas;
+
   const [selectedTab, setSelectedTab] = useState<
     "active" | "queue" | "ideas" | "closed" | "archived"
   >("active");
@@ -997,12 +1001,20 @@ export default function ExperimentsPage() {
     useState<Experiment | null>(null);
   const [showAIDesigner, setShowAIDesigner] = useState(false);
   const [aiInput, setAiInput] = useState("");
-  const [closedExperiments, setClosedExperiments] = useState(
-    mockArchivedExperiments,
+  const [closedExperiments, setClosedExperiments] = useState<Experiment[]>(
+    wsExperiments.archived,
   );
 
+  // Re-seed closed experiments when workspace changes
+  const prevWorkspaceId = useRef(activeProjectId);
+  if (prevWorkspaceId.current !== activeProjectId) {
+    prevWorkspaceId.current = activeProjectId;
+    setClosedExperiments(wsExperiments.archived);
+    setSelectedExperiment(null);
+  }
+
   const handleMarkStatus = (id: string, status: "shipped" | "failed") => {
-    setClosedExperiments((prev) =>
+    setClosedExperiments((prev: Experiment[]) =>
       prev.map((exp) => (exp.id === id ? { ...exp, status } : exp)),
     );
   };
@@ -1014,13 +1026,12 @@ export default function ExperimentsPage() {
   };
   const stats = useMemo(() => {
     const running = mockActiveExperiments.filter(
-      (exp) => exp.status === "running",
+      (exp: Experiment) => exp.status === "running",
     ).length;
-    const avgConfidence =
-      mockActiveExperiments
-        .filter((exp) => exp.confidence)
-        .reduce((sum, exp) => sum + (exp.confidence || 0), 0) /
-      mockActiveExperiments.filter((exp) => exp.confidence).length;
+    const withConf = mockActiveExperiments.filter((exp: Experiment) => exp.confidence);
+    const avgConfidence = withConf.length
+      ? withConf.reduce((sum: number, exp: Experiment) => sum + (exp.confidence || 0), 0) / withConf.length
+      : 0;
     const totalIdeas = mockExperimentQueue.length + mockExperimentIdeas.length;
 
     return {
@@ -1028,7 +1039,8 @@ export default function ExperimentsPage() {
       avgConfidence: Math.round(avgConfidence),
       totalIdeas,
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   function handleDesignExperiment(idea: ExperimentIdea) {
     console.log("Designing experiment for:", idea.title);
